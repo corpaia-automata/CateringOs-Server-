@@ -1,8 +1,8 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from django.urls import path
 
-router = DefaultRouter()
+from . import views
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path('', views.grocery_list, name='grocery-list'),
+    path('export/excel/', views.export_excel, name='grocery-export-excel'),
 ]

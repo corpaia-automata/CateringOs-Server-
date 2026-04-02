@@ -29,6 +29,13 @@ class EventViewSet(viewsets.ModelViewSet):
         instance.soft_delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=True, methods=['post'], url_path='generate-grocery')
+    def generate_grocery(self, request, pk=None):
+        from apps.engine.calculation import CalculationEngine
+        event = self.get_object()
+        count = CalculationEngine.run(event.id)
+        return Response({'detail': f'Grocery list generated with {count} ingredients.', 'count': count})
+
     @action(detail=True, methods=['post'], url_path='transition')
     def transition(self, request, pk=None):
         serializer = EventTransitionSerializer(data=request.data)

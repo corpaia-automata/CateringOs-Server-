@@ -33,6 +33,11 @@ class DishViewSet(viewsets.ModelViewSet):
             )
         return super().partial_update(request, *args, **kwargs)
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.soft_delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class DishRecipeViewSet(viewsets.GenericViewSet):
     """
@@ -44,30 +49,64 @@ class DishRecipeViewSet(viewsets.GenericViewSet):
 
     def list(self, request, dish_pk=None):
         dish = get_object_or_404(Dish, pk=dish_pk)
-        serializer = DishRecipeSerializer(
+        lines = DishRecipeSerializer(
             dish.recipe_lines.select_related('ingredient').all(), many=True
-        )
-        return Response(serializer.data)
+        ).data
+        return Response({
+            'batch_size': dish.batch_size,
+            'batch_unit': dish.batch_unit,
+            'lines': lines,
+        })
 
     def replace_all(self, request, dish_pk=None):
         dish = get_object_or_404(Dish, pk=dish_pk)
 
-        lines_data = request.data if isinstance(request.data, list) else []
-        serializer = DishRecipeSerializer(data=lines_data, many=True)
+        # Accept both new {batch_size, batch_unit, lines: [...]} and legacy [...] format
+        if isinstance(request.data, dict):
+            lines_data   = request.data.get('lines', [])
+            new_batch_size = request.data.get('batch_size', dish.batch_size)
+            new_batch_unit = request.data.get('batch_unit', dish.batch_unit)
+        else:
+            lines_data     = request.data if isinstance(request.data, list) else []
+            new_batch_size = dish.batch_size
+            new_batch_unit = dish.batch_unit
+
+        # Deduplicate by ingredient before validation — keeps first occurrence,
+        # silently drops repeated ingredient rows the frontend may send.
+        seen_ingredients = set()
+        deduplicated_lines = []
+        for line in lines_data:
+            ing_id = line.get('ingredient')
+            if not ing_id:
+                continue  # skip empty rows
+            if ing_id not in seen_ingredients:
+                seen_ingredients.add(ing_id)
+                deduplicated_lines.append(line)
+
+        serializer = DishRecipeSerializer(data=deduplicated_lines, many=True)
         serializer.is_valid(raise_exception=True)
 
         with transaction.atomic():
-            dish.recipe_lines.all().delete()
+            # Use all_objects to bypass ActiveManager — hard-deletes stale soft-deleted
+            # lines too, preventing unique_together IntegrityError on bulk_create.
+            DishRecipe.all_objects.filter(dish=dish).delete()
             new_lines = [
                 DishRecipe(dish=dish, **item)
                 for item in serializer.validated_data
             ]
             DishRecipe.objects.bulk_create(new_lines)
-            # bulk_create does not trigger signals — update has_recipe explicitly
-            Dish.objects.filter(pk=dish.pk).update(has_recipe=bool(new_lines))
+            Dish.objects.filter(pk=dish.pk).update(
+                has_recipe=bool(new_lines),
+                batch_size=new_batch_size,
+                batch_unit=new_batch_unit,
+            )
 
         dish.refresh_from_db()
-        result = DishRecipeSerializer(
+        lines = DishRecipeSerializer(
             dish.recipe_lines.select_related('ingredient').all(), many=True
-        )
-        return Response(result.data)
+        ).data
+        return Response({
+            'batch_size': dish.batch_size,
+            'batch_unit': dish.batch_unit,
+            'lines': lines,
+        })

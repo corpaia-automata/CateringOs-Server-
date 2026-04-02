@@ -19,5 +19,6 @@ class DishFilter(django_filters.FilterSet):
     class Meta:
         model = Dish
         fields = {
-            'is_active': ['exact'],
+            'is_active':   ['exact'],
+            'has_recipe':  ['exact'],   # allows ?has_recipe=true to filter menu-ready dishes
         }

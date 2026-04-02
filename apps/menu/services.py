@@ -23,6 +23,15 @@ class MenuService:
                 'Unlock the event before adding dishes.'
             )
 
+        dish = validated_data.get('dish')
+        if dish and EventMenuItem.objects.filter(
+            event=event, dish=dish, is_deleted=False
+        ).exists():
+            raise ValidationError(
+                f'"{dish.name}" is already in the menu for this event. '
+                'Edit its quantity instead of adding it again.'
+            )
+
         return EventMenuItem.objects.create(event=event, **validated_data)
 
     @staticmethod

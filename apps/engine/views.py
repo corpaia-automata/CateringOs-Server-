@@ -33,5 +33,5 @@ class EventIngredientViewSet(
         return (
             EventIngredient.objects
             .select_related('ingredient')
-            .all()
+            .filter(total_quantity__gt=0)
         )

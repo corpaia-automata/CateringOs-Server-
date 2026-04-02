@@ -13,6 +13,7 @@ class EventMenuItemSerializer(serializers.ModelSerializer):
             'dish_name_snapshot',
             'unit_type_snapshot',
             'quantity',
+            'quantity_unit',          # writable; defaults to dish.unit_type in model.save()
             'recipe_snapshot',
             'sort_order',
             'created_at',
@@ -27,3 +28,8 @@ class EventMenuItemSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         )
+
+    def validate_quantity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('Quantity must be greater than zero.')
+        return value

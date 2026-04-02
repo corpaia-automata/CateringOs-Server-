@@ -21,7 +21,7 @@ class EventIngredient(models.Model):
     # Denormalised for fast reads — no joins needed on the grocery list
     ingredient_name = models.CharField(max_length=255)
     category        = models.CharField(max_length=20, db_index=True)
-    total_quantity  = models.DecimalField(max_digits=14, decimal_places=4)
+    total_quantity  = models.DecimalField(max_digits=14, decimal_places=6)
     unit            = models.CharField(max_length=20)
     calculated_at   = models.DateTimeField(auto_now=True)
 

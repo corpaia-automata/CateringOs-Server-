@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from .models import Dish, DishRecipe, Ingredient
 
@@ -27,12 +28,22 @@ class DishRecipeSerializer(serializers.ModelSerializer):
 
 
 class DishSerializer(serializers.ModelSerializer):
+    # Explicit validator: enforce uniqueness only among non-deleted dishes
+    # (model no longer carries unique=True so DRF won't auto-generate this)
+    name = serializers.CharField(
+        max_length=255,
+        validators=[UniqueValidator(
+            queryset=Dish.objects.all(),
+            message='A dish with this name already exists.',
+        )],
+    )
     recipe_lines = DishRecipeSerializer(many=True, read_only=True)
 
     class Meta:
         model = Dish
         fields = (
             'id', 'name', 'category', 'unit_type', 'is_active',
-            'has_recipe', 'notes', 'recipe_lines', 'created_at', 'updated_at',
+            'has_recipe', 'notes', 'batch_size', 'batch_unit',
+            'recipe_lines', 'created_at', 'updated_at',
         )
         read_only_fields = ('id', 'has_recipe', 'created_at', 'updated_at')

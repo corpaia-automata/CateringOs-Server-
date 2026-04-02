@@ -39,3 +39,4 @@
 - Migrate authentication app FIRST, then everything else
 - engine app is NEVER manually edited — only written by CalculationEngine
 - Menu save signal always triggers CalculationEngine.run()
+

@@ -1,39 +1,212 @@
-{% extends "base_pdf.html" %}
-{% block content %}
-<h2>Quotation #{{ quotation.reference_number }}</h2>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4;
+    margin: 12mm 18mm 18mm 18mm;
+  }
 
-<table style="width:50%; margin-bottom:20px;">
-    <tr><td><strong>Client:</strong></td><td>{{ quotation.event.client_name }}</td></tr>
-    <tr><td><strong>Event Date:</strong></td><td>{{ quotation.event.event_date }}</td></tr>
-    <tr><td><strong>Guests:</strong></td><td>{{ quotation.event.guest_count }}</td></tr>
-    <tr><td><strong>Valid Until:</strong></td><td>{{ quotation.valid_until }}</td></tr>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    color: #1a1a1a;
+    {% comment %} background-color: #faf4e8; {% endcomment %}
+  }
+
+  /* LOGO */
+  .logo-section {
+    text-align: center;
+    margin-bottom: 18px;
+    padding-top: 6px;
+  }
+  .logo-section img {
+    width: 200px;
+    height: auto;
+  }
+
+  /* CLIENT INFO TABLE */
+  .info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 22px;
+  }
+  .info-table td {
+    border: 1.5px solid #1a1a1a;
+    padding: 9px 12px;
+    font-size: 12px;
+    vertical-align: middle;
+  }
+  .info-table .label {
+    font-weight: bold;
+    font-size: 11.5px;
+    letter-spacing: 0.3px;
+    width: 18%;
+  }
+  .info-table .value {
+    width: 32%;
+    font-size: 12px;
+  }
+
+  /* MENU SECTIONS */
+  .menu-section {
+    margin-bottom: 10px;
+    text-align: left;
+  }
+
+  /* Section title — matches the bold underlined serif in PDF */
+  .section-title {
+    display: inline-block;
+    font-size: 20.5px;
+    font-weight: bold;
+    text-decoration: underline;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+    font-family: 'Times New Roman', Georgia, serif;
+    letter-spacing: 2px;
+    color: #0a0a0a;
+    text-underline-offset: 3px;
+  }
+
+  /* Arrow + dish item — LEFT aligned with indent */
+  .menu-item {
+    font-size: 20.5px;
+    line-height: 1.9;
+    font-family: Arial, sans-serif;
+    color: #1a1a1a;
+    text-align: left;
+    padding-left: 40px;
+  }
+
+  /* CUSTOMER BENEFITS */
+  .benefits-section {
+    margin-top: 14px;
+    text-align: left;
+  }
+  .benefits-title {
+    display: inline-block;
+    font-size: 25.5px;
+    font-weight: 900;
+    text-decoration: underline;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-family: 'Times New Roman', Georgia, serif;
+    letter-spacing: 2px;
+    color: #0a0a0a;
+    text-underline-offset: 3px;
+  }
+  .benefit-item {
+    font-size: 20.5px;
+    padding-left: 40px;
+    line-height: 1.5;
+    font-family: Arial, sans-serif;
+    color: #1a1a1a;
+    text-align: left;
+  }
+
+  /* FOOTER */
+  .footer {
+    margin-top: 24px;
+    text-align: center;
+  }
+  .footer-dashes {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: #555;
+    margin-bottom: 14px;
+    word-break: break-all;
+  }
+  .footer p {
+    font-size: 11px;
+    line-height: 0.5;
+    color: #1a1a1a;
+    font-family: Arial, sans-serif;
+    letter-spacing: 1px;
+  }
+  .footer .city {
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .footer .contact {
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGO -->
+<div class="logo-section">
+  {% if logo_path %}
+  <img src="{{ logo_path }}" alt="Afsal Catering" />
+  {% endif %}
+</div>
+
+<!-- CLIENT INFO TABLE -->
+<table class="info-table">
+  <tr>
+    <td class="label">NAME</td>
+    <td class="value">{{ customer_name }}</td>
+    <td class="label">NO OF GUEST</td>
+    <td class="value">{{ guest_count }}</td>
+  </tr>
+  <tr>
+    <td class="label">CONTACT NO</td>
+    <td class="value">{{ contact_number }}</td>
+    <td class="label">SERVICE TYPE</td>
+    <td class="value">{{ service_type }}</td>
+  </tr>
+  <tr>
+    <td class="label">VENUE</td>
+    <td class="value">{{ venue }}</td>
+    <td class="label">DATE &amp; DAY</td>
+    <td class="value">{{ event_date }}{% if event_day %} &amp; {{ event_day }}{% endif %}</td>
+  </tr>
+  <tr>
+    <td class="label">EVENT</td>
+    <td class="value">{{ event_type }}</td>
+    <td class="label">TIME</td>
+    <td class="value">{{ event_time }}</td>
+  </tr>
 </table>
 
-<h3>Items</h3>
-<table>
-    <thead>
-        <tr>
-            <th>Description</th>
-            <th>Qty</th>
-            <th>Unit Price</th>
-            <th>Amount</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in quotation.items.all %}
-        <tr>
-            <td>{{ item.description }}</td>
-            <td>{{ item.quantity }}</td>
-            <td>{{ item.unit_price }}</td>
-            <td>{{ item.total_price }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-    <tfoot>
-        <tr>
-            <td colspan="3"><strong>Total</strong></td>
-            <td><strong>{{ quotation.total_amount }}</strong></td>
-        </tr>
-    </tfoot>
-</table>
-{% endblock %}
+<!-- MENU SECTIONS -->
+{% for section in menu_sections %}
+<div class="menu-section">
+  <div class="section-title">{{ section.title }}</div>
+  {% for dish in section.dishes %}
+  <div class="menu-item">➢{{ dish.dish_name }}</div>
+  {% endfor %}
+</div>
+{% endfor %}
+
+<!-- CUSTOMER BENEFITS -->
+<div class="benefits-section">
+  <div class="benefits-title">Customer Benefits</div>
+  {% for benefit in benefits %}
+  <div class="benefit-item">• {{ benefit }}</div>
+  {% endfor %}
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-dashes">
+    -----------------------------------------------------------------------------------------
+  </div>
+  {% if logo_path %}
+  <img src="{{ logo_path }}"
+       style="width:75px; height:auto; margin-bottom:10px;" />
+  {% endif %}
+  <p>NEAR GAS GODOWN</p>
+  <p class="city">MULLAMPARA, MANJERI</p>
+  <p class="contact">CONTACT NO: 9946 395 402, 8136 873 402</p>
+</div>
+
+</body>
+</html>
