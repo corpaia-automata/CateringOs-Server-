@@ -3,37 +3,32 @@ import os
 
 DEBUG = False
 
+# ✅ REQUIRED (THIS FIXES YOUR 400 ERROR)
 ALLOWED_HOSTS = [
-    "13.60.235.174",
-    "ec2-13-60-235-174.eu-north-1.compute.amazonaws.com",
+    "cateringos.corpaia.com",
 ]
-
-# Static
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# Security (TEMP SAFE MODE)
-SECURE_SSL_REDIRECT = False
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
-
-SECURE_HSTS_SECONDS = 0
-SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 
 # Secrets
 SECRET_KEY = os.getenv("SECRET_KEY")
 
+# CORS (frontend → backend)
+CORS_ALLOWED_ORIGINS = [
+    "https://corpaia.com",
+    "https://www.corpaia.com",
+]
 
+# CSRF (VERY IMPORTANT for admin login)
+CSRF_TRUSTED_ORIGINS = [
+    "https://cateringos.corpaia.com",
+]
 
-# 🔐 ENABLE AFTER DOMAIN + SSL (IMPORTANT)
+# Security
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 
-# ALLOWED_HOSTS = [
-#     "yourdomain.com",
-#     "www.yourdomain.com",
-# ]
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
-# SECURE_SSL_REDIRECT = True
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True
-
-# SECURE_HSTS_SECONDS = 31536000
-# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+# Static
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
