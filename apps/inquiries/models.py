@@ -17,8 +17,15 @@ class Inquiry(BaseMixin):
         CONVERTED = 'CONVERTED', 'Converted'
         LOST      = 'LOST',      'Lost'
 
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.PROTECT,
+        related_name='inquiries',
+        db_column='tenant_id',
+    )
     customer_name   = models.CharField(max_length=255)
     contact_number  = models.CharField(max_length=20, blank=True)
+    email           = models.EmailField(blank=True, default='')
     source_channel  = models.CharField(max_length=15, choices=SourceChannel.choices)
     event_type      = models.CharField(max_length=100)
     tentative_date  = models.DateField()

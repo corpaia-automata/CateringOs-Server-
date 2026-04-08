@@ -24,6 +24,12 @@ class Ingredient(BaseMixin):
         ML = 'ml', 'Millilitre'
         PIECE = 'piece', 'Piece'
 
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.PROTECT,
+        related_name='ingredients',
+        db_column='tenant_id',
+    )
     name = models.CharField(max_length=255, unique=True)
     category = models.CharField(max_length=20, choices=Category.choices)
     unit_of_measure = models.CharField(max_length=10, choices=UOM.choices)
@@ -47,6 +53,12 @@ class Dish(BaseMixin):
         LITRE = 'LITRE', 'Litre'
         PORTION = 'PORTION', 'Portion'
 
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.PROTECT,
+        related_name='dishes',
+        db_column='tenant_id',
+    )
     name = models.CharField(max_length=255)
     category = models.CharField(max_length=100)
     unit_type = models.CharField(max_length=10, choices=UnitType.choices)
@@ -74,6 +86,12 @@ class Dish(BaseMixin):
 
 class DishRecipe(BaseMixin):
 
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.PROTECT,
+        related_name='dish_recipes',
+        db_column='tenant_id',
+    )
     dish = models.ForeignKey(
         Dish, on_delete=models.CASCADE, related_name='recipe_lines'
     )

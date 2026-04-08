@@ -10,21 +10,20 @@ class InquiryService:
 
     @staticmethod
     @transaction.atomic
-    def convert_to_event(inquiry_id) -> Event:
+    def convert_to_event(inquiry: Inquiry) -> Event:
         """
         Creates an Event from inquiry data, marks the inquiry as CONVERTED,
         and links the two via converted_event.
         Raises ValidationError if already converted.
         """
-        try:
-            inquiry = Inquiry.objects.select_for_update().get(pk=inquiry_id)
-        except Inquiry.DoesNotExist:
-            raise ValidationError(f'Inquiry {inquiry_id} not found.')
+        # Re-fetch with row lock inside the atomic block to prevent races.
+        inquiry = Inquiry.objects.select_for_update().get(pk=inquiry.pk)
 
-        if inquiry.status == Inquiry.Status.CONVERTED:
+        if inquiry.converted_event_id is not None:
             raise ValidationError('This inquiry has already been converted to an event.')
 
         event = Event.objects.create(
+            tenant_id      = inquiry.tenant_id,
             customer_name  = inquiry.customer_name,
             contact_number = inquiry.contact_number,
             event_type     = inquiry.event_type,

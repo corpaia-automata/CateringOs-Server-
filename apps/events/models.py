@@ -33,6 +33,12 @@ class Event(BaseMixin):
         PENDING      = 'PENDING',      'Pending'
         FULLY_PAID   = 'FULLY_PAID',   'Fully Paid'
 
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.PROTECT,
+        related_name='events',
+        db_column='tenant_id',
+    )
     event_code              = models.CharField(max_length=30, unique=True, editable=False)
     customer_name           = models.CharField(max_length=255)
     contact_number          = models.CharField(max_length=20, blank=True)
@@ -69,8 +75,8 @@ class Event(BaseMixin):
         from django.utils import timezone
         date_str = timezone.now().strftime('%Y%m%d')
         prefix = f'EVT-{date_str}-'
-        # select_for_update locks the count query to prevent duplicate codes
-        # under concurrent requests. Counts all_objects (inc. soft-deleted).
+        # select_for_update on matching rows prevents two concurrent saves from
+        # counting the same value and racing to INSERT the same code.
         last = (
             Event.all_objects
             .select_for_update()

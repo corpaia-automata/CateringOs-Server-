@@ -8,6 +8,12 @@ class EventIngredient(models.Model):
     calculated_at is refreshed on every engine run via auto_now=True.
     """
 
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.PROTECT,
+        related_name='event_ingredients',
+        db_column='tenant_id',
+    )
     event = models.ForeignKey(
         'events.Event',
         on_delete=models.CASCADE,

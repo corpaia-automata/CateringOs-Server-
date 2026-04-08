@@ -32,7 +32,13 @@ class User(AbstractBaseUser, PermissionsMixin, BaseMixin):
         MANAGER = 'MANAGER', 'Manager'
         STAFF = 'STAFF', 'Staff'
 
-    email = models.EmailField(unique=True)
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.PROTECT,
+        related_name='users',
+        db_column='tenant_id',
+    )
+    email = models.EmailField()
     first_name = models.CharField(max_length=150)
     last_name = models.CharField(max_length=150)
     phone = models.CharField(max_length=20, blank=True)
@@ -47,6 +53,12 @@ class User(AbstractBaseUser, PermissionsMixin, BaseMixin):
 
     class Meta:
         db_table = 'users'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'email'],
+                name='users_tenant_email_unique',
+            ),
+        ]
 
     def __str__(self):
         return self.email

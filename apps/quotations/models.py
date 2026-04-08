@@ -10,6 +10,12 @@ class Quotation(BaseMixin):
         ACCEPTED = 'ACCEPTED', 'Accepted'
         REJECTED = 'REJECTED', 'Rejected'
 
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.PROTECT,
+        related_name='quotations',
+        db_column='tenant_id',
+    )
     event = models.ForeignKey(
         'events.Event',
         on_delete=models.CASCADE,
@@ -28,9 +34,20 @@ class Quotation(BaseMixin):
     total_amount    = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     notes           = models.TextField(blank=True)
 
+    quote_number = models.CharField(max_length=20, unique=True, blank=True, editable=False)
+
     class Meta:
         db_table = 'quotations'
-        ordering = ['-version_number']
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f'Quotation v{self.version_number} — {self.event}'
+        return f'{self.quote_number} v{self.version_number} — {self.event}'
+
+    def save(self, *args, **kwargs):
+        if not self.quote_number:
+            self.quote_number = self._generate_quote_number()
+        super().save(*args, **kwargs)
+
+    def _generate_quote_number(self):
+        last = Quotation.all_objects.count()
+        return f'QTN-{str(last + 1).zfill(5)}'

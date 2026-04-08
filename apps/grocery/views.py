@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from apps.engine.calculation import format_quantity
 from apps.engine.models import EventIngredient
 from shared.exports.excel_service import create_workbook, workbook_to_bytes
+from shared.permissions import IsTenantScopedJWT
 
 
 CATEGORY_ORDER = [
@@ -34,10 +35,11 @@ def _category_sort_key(cat: str) -> int:
         return 99
 
 
-def _get_events_for_date(date_str: str):
-    """Return confirmed events whose event_date matches date_str."""
+def _get_events_for_date(date_str: str, tenant_id: str):
+    """Return confirmed events (for this tenant) whose event_date matches date_str."""
     from apps.events.models import Event
     return Event.objects.filter(
+        tenant_id=tenant_id,
         event_date=date_str,
         status__in=['CONFIRMED', 'IN_PROGRESS'],
         is_deleted=False,
@@ -45,26 +47,20 @@ def _get_events_for_date(date_str: str):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTenantScopedJWT])
 def grocery_list(request):
     """
-    GET /grocery/?date=YYYY-MM-DD[&category=GROCERY&category=VEGETABLE…]
+    GET /api/app/<slug>/grocery/?date=YYYY-MM-DD[&category=GROCERY&category=VEGETABLE…]
 
-    Returns aggregated ingredients across all confirmed events on that date.
-    Response shape:
-      {
-        events: [{id, event_id, event_name, client_name, guest_count}],
-        ingredients: [{id, ingredient_name, quantity, unit, category}],
-        total_ingredients: int,
-        total_events: int,
-      }
+    Returns aggregated ingredients across all confirmed events on that date
+    for the current tenant.
     """
     date_str = request.query_params.get('date', '')
     if not date_str:
         return Response({'error': 'date is required (YYYY-MM-DD)'}, status=400)
 
     category_filter = [c.upper() for c in request.query_params.getlist('category') if c]
-    events, ingredients = _build_ingredients(date_str, category_filter)
+    events, ingredients = _build_ingredients(date_str, category_filter, request.tenant_id)
 
     events_data = [
         {
@@ -90,12 +86,12 @@ def grocery_list(request):
     })
 
 
-def _build_ingredients(date_str: str, category_filter: list[str]) -> tuple[list, list]:
+def _build_ingredients(date_str: str, category_filter: list[str], tenant_id: str) -> tuple[list, list]:
     """Shared aggregation used by both the list view and export."""
-    events = _get_events_for_date(date_str)
+    events = _get_events_for_date(date_str, tenant_id)
     event_ids = list(events.values_list('id', flat=True))
 
-    qs = EventIngredient.objects.filter(event_id__in=event_ids)
+    qs = EventIngredient.objects.filter(event_id__in=event_ids, tenant_id=tenant_id)
     if category_filter:
         qs = qs.filter(category__in=category_filter)
 
@@ -133,18 +129,17 @@ CATEGORY_LABELS = {
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTenantScopedJWT])
 def export_excel(request):
-    """GET /grocery/export/excel/?date=YYYY-MM-DD[&category=…]"""
+    """GET /api/app/<slug>/grocery/export/excel/?date=YYYY-MM-DD[&category=…]"""
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from openpyxl.utils import get_column_letter
 
     date_str = request.query_params.get('date', '')
     if not date_str:
         return HttpResponse('date is required', status=400)
 
     category_filter = [c.upper() for c in request.query_params.getlist('category') if c]
-    events, ingredients = _build_ingredients(date_str, category_filter)
+    events, ingredients = _build_ingredients(date_str, category_filter, request.tenant_id)
 
     wb = create_workbook()
     ws = wb.active
@@ -195,7 +190,7 @@ def export_excel(request):
             serial = 1
 
         qty = float(item['quantity'])
-        qty_str = f'{qty:g}'  # removes trailing zeros: 500.0→"500", 0.1→"0.1", 12.5→"12.5"
+        qty_str = f'{qty:g}'  # removes trailing zeros: 500.0→"500", 0.1→"0.1"
 
         ws.cell(row=row, column=1, value=serial).alignment = Alignment(horizontal='center')
         ws.cell(row=row, column=2, value=item['ingredient_name'])

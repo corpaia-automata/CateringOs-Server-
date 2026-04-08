@@ -6,9 +6,11 @@ from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from shared.exports.excel_service import create_workbook, workbook_to_bytes
+from shared.permissions import IsTenantScopedJWT
 
 from .filters import EventFilter
 from .models import Event
@@ -17,12 +19,18 @@ from .services import EventService
 
 
 class EventViewSet(viewsets.ModelViewSet):
-    queryset = Event.objects.all()
     serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated, IsTenantScopedJWT]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = EventFilter
     search_fields = ['event_code', 'customer_name', 'event_type', 'venue']
     ordering_fields = ['event_date', 'event_time', 'status', 'created_at']
+
+    def get_queryset(self):
+        return Event.objects.filter(tenant_id=self.request.tenant_id)
+
+    def perform_create(self, serializer):
+        serializer.save(tenant_id=self.request.tenant_id)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -38,6 +46,7 @@ class EventViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='transition')
     def transition(self, request, pk=None):
+        self.get_object()  # ownership check — 404 if not this tenant's event
         serializer = EventTransitionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 

@@ -39,6 +39,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['role'] = user.role
         token['full_name'] = user.full_name
         token['email'] = user.email
+        token['tenant_id'] = str(user.tenant_id)
         return token
 
     def validate(self, attrs):
@@ -46,3 +47,33 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Include the full user object alongside the tokens
         data['user'] = UserSerializer(self.user).data
         return data
+
+
+class TenantLoginSerializer(serializers.Serializer):
+    """
+    Authenticates a user scoped to a specific tenant.
+    Requires request.tenant_id to be set by TenantResolverMiddleware.
+    """
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        request = self.context['request']
+        tenant_id = getattr(request, 'tenant_id', None)
+        if not tenant_id:
+            raise serializers.ValidationError('Tenant context is missing.')
+
+        try:
+            user = User.objects.get(
+                tenant_id=tenant_id,
+                email=attrs['email'],
+                is_active=True,
+            )
+        except User.DoesNotExist:
+            raise serializers.ValidationError('Invalid credentials.')
+
+        if not user.check_password(attrs['password']):
+            raise serializers.ValidationError('Invalid credentials.')
+
+        attrs['user'] = user
+        return attrs

@@ -2,9 +2,11 @@ from django.core.exceptions import ValidationError
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError as DRFValidationError
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.engine.models import EventIngredient
+from shared.permissions import IsTenantScopedJWT
 
 from .models import EventMenuItem
 from .serializers import EventMenuItemSerializer
@@ -13,15 +15,19 @@ from .services import MenuService
 
 class EventMenuItemViewSet(viewsets.ModelViewSet):
     """
-    Nested under /api/events/{event_pk}/menu-items/.
+    Nested under /api/app/<slug>/events/{event_pk}/menu-items/.
     All mutations go through MenuService to enforce business rules.
     """
     serializer_class = EventMenuItemSerializer
+    permission_classes = [IsAuthenticated, IsTenantScopedJWT]
 
     def get_queryset(self):
         return (
             EventMenuItem.objects
-            .filter(event_id=self.kwargs['event_pk'])
+            .filter(
+                event_id=self.kwargs['event_pk'],
+                event__tenant_id=self.request.tenant_id,
+            )
             .select_related('dish')
         )
 
@@ -31,6 +37,7 @@ class EventMenuItemViewSet(viewsets.ModelViewSet):
         try:
             instance = MenuService.add_dish(
                 event_id=self.kwargs['event_pk'],
+                tenant_id=request.tenant_id,
                 validated_data=serializer.validated_data,
             )
         except ValidationError as exc:
@@ -51,7 +58,7 @@ class EventMenuItemViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='ingredients')
     def ingredients(self, request, event_pk=None):
         """
-        GET /api/events/{event_pk}/menu-items/ingredients/?categories=MEAT,GROCERY
+        GET /api/app/<slug>/events/{event_pk}/menu-items/ingredients/?categories=MEAT,GROCERY
         Returns calculated EventIngredient rows for this event, optionally
         filtered by one or more comma-separated category values.
 
@@ -64,7 +71,7 @@ class EventMenuItemViewSet(viewsets.ModelViewSet):
         """
         queryset = (
             EventIngredient.objects
-            .filter(event_id=event_pk)
+            .filter(event_id=event_pk, tenant_id=request.tenant_id)
             .select_related('ingredient')
             .order_by('category', 'ingredient_name')
         )

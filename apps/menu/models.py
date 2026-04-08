@@ -4,6 +4,12 @@ from shared.mixins import BaseMixin
 
 class EventMenuItem(BaseMixin):
 
+    tenant = models.ForeignKey(
+        'tenants.Tenant',
+        on_delete=models.PROTECT,
+        related_name='menu_items',
+        db_column='tenant_id',
+    )
     event = models.ForeignKey(
         'events.Event',
         on_delete=models.CASCADE,

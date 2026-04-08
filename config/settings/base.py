@@ -29,6 +29,7 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
+    'apps.tenants',
     'apps.authentication',
     'apps.inquiries',
     'apps.events',
@@ -51,6 +52,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Resolves /api/app/<slug>/... → sets request.tenant* + activates RLS
+    'shared.middleware.TenantResolverMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -77,7 +80,10 @@ WSGI_APPLICATION = 'config.wsgi.application'
 AUTH_USER_MODEL = 'authentication.User'
 
 DATABASES = {
-    'default': env.db('DATABASE_URL')
+    'default': {
+        **env.db('DATABASE_URL'),
+        'ATOMIC_REQUESTS': True,   # wraps each request in a transaction so SET LOCAL works
+    }
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -126,3 +132,8 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
+
+# auth.E003 fires because email is the USERNAME_FIELD but not globally unique.
+# In this multi-tenant setup, uniqueness is enforced at the DB level via
+# UNIQUE(tenant_id, email) — the same email may belong to different tenants.
+SILENCED_SYSTEM_CHECKS = ['auth.E003']

@@ -1,7 +1,10 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from shared.permissions import IsTenantScopedJWT
 
 from .filters import DishFilter, IngredientFilter
 from .models import Dish, DishRecipe, Ingredient
@@ -9,19 +12,33 @@ from .serializers import DishRecipeSerializer, DishSerializer, IngredientSeriali
 
 
 class IngredientViewSet(viewsets.ModelViewSet):
-    queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+    permission_classes = [IsAuthenticated, IsTenantScopedJWT]
     filterset_class = IngredientFilter
     search_fields = ['name']
     ordering_fields = ['name', 'category']
 
+    def get_queryset(self):
+        return Ingredient.objects.filter(tenant_id=self.request.tenant_id)
+
+    def perform_create(self, serializer):
+        serializer.save(tenant_id=self.request.tenant_id)
+
 
 class DishViewSet(viewsets.ModelViewSet):
-    queryset = Dish.objects.prefetch_related('recipe_lines__ingredient').all()
     serializer_class = DishSerializer
+    permission_classes = [IsAuthenticated, IsTenantScopedJWT]
     filterset_class = DishFilter
     search_fields = ['name', 'category']
     ordering_fields = ['name', 'category']
+
+    def get_queryset(self):
+        return Dish.objects.prefetch_related('recipe_lines__ingredient').filter(
+            tenant_id=self.request.tenant_id
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(tenant_id=self.request.tenant_id)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -42,13 +59,18 @@ class DishViewSet(viewsets.ModelViewSet):
 class DishRecipeViewSet(viewsets.GenericViewSet):
     """
     Nested under dishes.
-    GET  /api/master/dishes/{dish_pk}/recipe/  → all recipe lines for the dish
-    PUT  /api/master/dishes/{dish_pk}/recipe/  → atomically replace all lines
+    GET  /api/app/<slug>/master/dishes/{dish_pk}/recipe/  → all recipe lines
+    PUT  /api/app/<slug>/master/dishes/{dish_pk}/recipe/  → atomically replace all
     """
     serializer_class = DishRecipeSerializer
+    permission_classes = [IsAuthenticated, IsTenantScopedJWT]
+
+    def _get_tenant_dish(self, dish_pk):
+        """Fetch the dish, scoped to the current tenant (raises 404 on cross-tenant)."""
+        return get_object_or_404(Dish, pk=dish_pk, tenant_id=self.request.tenant_id)
 
     def list(self, request, dish_pk=None):
-        dish = get_object_or_404(Dish, pk=dish_pk)
+        dish = self._get_tenant_dish(dish_pk)
         lines = DishRecipeSerializer(
             dish.recipe_lines.select_related('ingredient').all(), many=True
         ).data
@@ -59,7 +81,7 @@ class DishRecipeViewSet(viewsets.GenericViewSet):
         })
 
     def replace_all(self, request, dish_pk=None):
-        dish = get_object_or_404(Dish, pk=dish_pk)
+        dish = self._get_tenant_dish(dish_pk)
 
         # Accept both new {batch_size, batch_unit, lines: [...]} and legacy [...] format
         if isinstance(request.data, dict):
@@ -91,7 +113,7 @@ class DishRecipeViewSet(viewsets.GenericViewSet):
             # lines too, preventing unique_together IntegrityError on bulk_create.
             DishRecipe.all_objects.filter(dish=dish).delete()
             new_lines = [
-                DishRecipe(dish=dish, **item)
+                DishRecipe(dish=dish, tenant_id=request.tenant_id, **item)
                 for item in serializer.validated_data
             ]
             DishRecipe.objects.bulk_create(new_lines)
