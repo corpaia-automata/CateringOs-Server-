@@ -13,8 +13,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 # CORS (frontend → backend)
 CORS_ALLOWED_ORIGINS = [
-    "https://corpaia.com",
-    "https://www.corpaia.com",
+    "https://cateringos.corpaia.com",
+    "https://www.cateringos.corpaia.com",
 ]
 
 # CSRF (VERY IMPORTANT for admin login)
