@@ -6,6 +6,8 @@ DEBUG = False
 # ✅ REQUIRED (THIS FIXES YOUR 400 ERROR)
 ALLOWED_HOSTS = [
     "cateringos.corpaia.com",
+    "www.cateringos.corpaia.com",
+    "api.cateringos.corpaia.com",  
 ]
 
 # Secrets
