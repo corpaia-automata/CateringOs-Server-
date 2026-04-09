@@ -34,3 +34,5 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
 # Static
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+CORS_ALLOW_ALL_ORIGINS = True
