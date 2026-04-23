@@ -5,150 +5,117 @@
 <style>
   @page {
     size: A4;
-    margin: 12mm 18mm 18mm 18mm;
+    margin: 12mm 16mm 16mm 16mm;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
     font-family: Arial, sans-serif;
-    font-size: 13px;
-    color: #1a1a1a;
-    {% comment %} background-color: #faf4e8; {% endcomment %}
+    font-size: 12px;
+    color: #111111;
   }
 
-  /* LOGO */
-  .logo-section {
-    text-align: center;
-    margin-bottom: 18px;
-    padding-top: 6px;
-  }
-  .logo-section img {
-    width: 200px;
-    height: auto;
-  }
-
-  /* CLIENT INFO TABLE */
   .info-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 22px;
+    margin-bottom: 14px;
   }
+
   .info-table td {
-    border: 1.5px solid #1a1a1a;
-    padding: 9px 12px;
-    font-size: 12px;
+    border: 1.3px solid #111111;
+    padding: 7px 9px;
     vertical-align: middle;
-  }
-  .info-table .label {
-    font-weight: bold;
     font-size: 11.5px;
-    letter-spacing: 0.3px;
+  }
+
+  .label {
     width: 18%;
+    font-weight: 700;
+    letter-spacing: 0.2px;
   }
-  .info-table .value {
+
+  .value {
     width: 32%;
-    font-size: 12px;
+    font-weight: 600;
   }
 
-  /* MENU SECTIONS */
-  .menu-section {
-    margin-bottom: 10px;
-    text-align: left;
+  .menu-title {
+    font-family: 'Times New Roman', Georgia, serif;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    text-decoration: underline;
+    margin-bottom: 4px;
   }
 
-  /* Section title — matches the bold underlined serif in PDF */
   .section-title {
-    display: inline-block;
-    font-size: 20.5px;
-    font-weight: bold;
-    text-decoration: underline;
+    font-family: 'Times New Roman', Georgia, serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
+    text-decoration: underline;
+    margin-top: 8px;
     margin-bottom: 3px;
-    font-family: 'Times New Roman', Georgia, serif;
-    letter-spacing: 2px;
-    color: #0a0a0a;
-    text-underline-offset: 3px;
   }
 
-  /* Arrow + dish item — LEFT aligned with indent */
   .menu-item {
-    font-size: 20.5px;
-    line-height: 1.9;
-    font-family: Arial, sans-serif;
-    color: #1a1a1a;
-    text-align: left;
-    padding-left: 40px;
+    font-size: 19px;
+    line-height: 1.4;
+    padding-left: 18px;
   }
 
-  /* CUSTOMER BENEFITS */
-  .benefits-section {
-    margin-top: 14px;
-    text-align: left;
-  }
   .benefits-title {
-    display: inline-block;
-    font-size: 25.5px;
-    font-weight: 900;
-    text-decoration: underline;
-    text-transform: uppercase;
-    margin-bottom: 6px;
     font-family: 'Times New Roman', Georgia, serif;
-    letter-spacing: 2px;
-    color: #0a0a0a;
-    text-underline-offset: 3px;
-  }
-  .benefit-item {
-    font-size: 20.5px;
-    padding-left: 40px;
-    line-height: 1.5;
-    font-family: Arial, sans-serif;
-    color: #1a1a1a;
-    text-align: left;
+    font-size: 23px;
+    font-weight: 900;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    text-decoration: underline;
+    margin-top: 8px;
+    margin-bottom: 4px;
   }
 
-  /* FOOTER */
+  .benefit-item {
+    font-size: 19px;
+    line-height: 1.35;
+    padding-left: 20px;
+  }
+
   .footer {
-    margin-top: 24px;
+    margin-top: 14px;
     text-align: center;
   }
-  .footer-dashes {
+
+  .dash-line {
     font-size: 10px;
-    letter-spacing: 1px;
-    color: #555;
-    margin-bottom: 14px;
-    word-break: break-all;
+    color: #444;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
   }
+
   .footer p {
     font-size: 11px;
-    line-height: 0.5;
-    color: #1a1a1a;
-    font-family: Arial, sans-serif;
-    letter-spacing: 1px;
-  }
-  .footer .city {
-    font-size: 15px;
-    font-weight: bold;
+    line-height: 1.4;
     letter-spacing: 0.5px;
+  }
+
+  .footer .city {
+    font-size: 14px;
+    font-weight: 700;
     text-transform: uppercase;
   }
+
   .footer .contact {
-    font-size: 12px;
-    font-weight: bold;
-    letter-spacing: 1px;
+    font-size: 11.5px;
+    font-weight: 700;
   }
 </style>
 </head>
 <body>
 
-<!-- LOGO -->
-<div class="logo-section">
-  {% if logo_path %}
-  <img src="{{ logo_path }}" alt="Afsal Catering" />
-  {% endif %}
-</div>
-
-<!-- CLIENT INFO TABLE -->
 <table class="info-table">
   <tr>
     <td class="label">NAME</td>
@@ -176,32 +143,31 @@
   </tr>
 </table>
 
-<!-- MENU SECTIONS -->
+<div class="menu-title">MENU</div>
+
 {% for section in menu_sections %}
-<div class="menu-section">
-  <div class="section-title">{{ section.title }}</div>
+<div class="section-title">{{ section.title }}</div>
   {% for dish in section.dishes %}
-  <div class="menu-item">➢{{ dish.dish_name }}</div>
+  <div class="menu-item">&#10146;{{ dish.name }}</div>
   {% endfor %}
-</div>
 {% endfor %}
 
-<!-- CUSTOMER BENEFITS -->
-<div class="benefits-section">
-  <div class="benefits-title">Customer Benefits</div>
-  {% for benefit in benefits %}
-  <div class="benefit-item">• {{ benefit }}</div>
+{% if service_names %}
+<div class="section-title">SERVICES</div>
+  {% for service_name in service_names %}
+  <div class="menu-item">&#10146;{{ service_name }}</div>
   {% endfor %}
-</div>
+{% endif %}
 
-<!-- FOOTER -->
+<div class="benefits-title">CUSTOMER BENEFITS</div>
+{% for benefit in benefits %}
+<div class="benefit-item">&bull; {{ benefit }}</div>
+{% endfor %}
+
 <div class="footer">
-  <div class="footer-dashes">
-    -----------------------------------------------------------------------------------------
-  </div>
+  <div class="dash-line">---------------------------------------------------------------------------------------</div>
   {% if logo_path %}
-  <img src="{{ logo_path }}"
-       style="width:75px; height:auto; margin-bottom:10px;" />
+  <img src="{{ logo_path }}" style="width:68px; height:auto; margin-bottom:8px;" alt="logo" />
   {% endif %}
   <p>NEAR GAS GODOWN</p>
   <p class="city">MULLAMPARA, MANJERI</p>

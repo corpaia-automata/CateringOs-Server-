@@ -1,0 +1,29 @@
+{% extends "base_pdf.html" %}
+{% block content %}
+<h2>Final Grocery Sheet</h2>
+<p>Client: {{ client_name }} | Event Date: {{ event_date }} | Guests: {{ total_guests }}</p>
+<table>
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th>Ingredient Name</th>
+            <th>Total Quantity</th>
+            <th>Unit</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.category }}</td>
+            <td>{{ item.ingredient_name }}</td>
+            <td>{{ item.total_quantity }}</td>
+            <td>{{ item.unit }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4">No ingredients available for this quotation.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

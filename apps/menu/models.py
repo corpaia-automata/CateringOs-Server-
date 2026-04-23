@@ -22,13 +22,17 @@ class EventMenuItem(BaseMixin):
     )
 
     # --- Snapshot fields (frozen at first save, never updated after) ---
-    dish_name_snapshot  = models.CharField(max_length=255, blank=True)
-    unit_type_snapshot  = models.CharField(max_length=10,  blank=True)
-    # Format: [{ingredient_id, name, category, qty_per_unit (str), unit}]
-    recipe_snapshot     = models.JSONField(default=list, blank=True)
+    dish_name_snapshot    = models.CharField(max_length=255, blank=True)
+    # serving_unit replaces unit_type_snapshot — single unified field
+    serving_unit_snapshot = models.CharField(max_length=10, blank=True)
+    # Format: [{ingredient_id, name, category, qty_per_unit (str), unit,
+    #           unit_cost_snapshot (str), batch_size (str)}]
+    # unit_cost_snapshot enables historical cost recovery even if ingredient prices change.
+    recipe_snapshot       = models.JSONField(default=list, blank=True)
 
     quantity      = models.DecimalField(max_digits=10, decimal_places=2)
-    quantity_unit = models.CharField(max_length=10, blank=True)  # KG/PLATE/PIECE/LITRE — defaults to dish.unit_type
+    # quantity_unit defaults to dish.serving_unit at first save
+    quantity_unit = models.CharField(max_length=10, blank=True)
     sort_order    = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -39,15 +43,14 @@ class EventMenuItem(BaseMixin):
         return f'{self.event} | {self.dish_name_snapshot or self.dish.name}'
 
     def save(self, *args, **kwargs):
-        # Freeze snapshots on first creation only (blank guards against re-freeze)
         if not self.dish_name_snapshot:
             self.dish_name_snapshot = self.dish.name
-        if not self.unit_type_snapshot:
-            self.unit_type_snapshot = self.dish.unit_type
+        if not self.serving_unit_snapshot:
+            self.serving_unit_snapshot = self.dish.serving_unit
         if not self.quantity_unit:
-            self.quantity_unit = self.dish.unit_type
-        # Fix 4: use _state.adding so an empty recipe list [] doesn't trigger
-        # re-snapshot on every subsequent save ([] is falsy — the old guard was broken)
+            self.quantity_unit = self.dish.serving_unit
+        # Use _state.adding so an empty recipe list [] doesn't trigger
+        # re-snapshot on every subsequent save ([] is falsy — old guard was broken).
         if self._state.adding:
             self.recipe_snapshot = self._build_recipe_snapshot()
         super().save(*args, **kwargs)
@@ -56,12 +59,13 @@ class EventMenuItem(BaseMixin):
         batch_size = str(self.dish.batch_size)
         return [
             {
-                'ingredient_id': str(line.ingredient.id),
-                'name':          line.ingredient.name,
-                'category':      line.ingredient.category,
-                'qty_per_unit':  str(line.qty_per_unit),
-                'unit':          line.unit,
-                'batch_size':    batch_size,
+                'ingredient_id':     str(line.ingredient.id),
+                'name':              line.ingredient.name,
+                'category':          line.ingredient.category,
+                'qty_per_unit':      str(line.qty_per_unit),
+                'unit':              line.unit,
+                'unit_cost_snapshot': str(line.unit_cost_snapshot),
+                'batch_size':        batch_size,
             }
             for line in self.dish.recipe_lines.select_related('ingredient').all()
         ]

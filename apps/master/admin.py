@@ -1,6 +1,15 @@
 from django.contrib import admin
 
-from .models import Dish, DishRecipe, Ingredient
+from .models import Category, Dish, DishRecipe, Ingredient
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug', 'is_active', 'sort_order')
+    list_filter = ('is_active',)
+    search_fields = ('name',)
+    prepopulated_fields = {'slug': ('name',)}
+    ordering = ('sort_order', 'name')
 
 
 @admin.register(Ingredient)
@@ -13,9 +22,9 @@ class IngredientAdmin(admin.ModelAdmin):
 
 @admin.register(Dish)
 class DishAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category', 'unit_type', 'has_recipe', 'is_active')
-    list_filter = ('category', 'unit_type', 'is_active', 'has_recipe')
-    search_fields = ('name', 'category')
+    list_display = ('name', 'category', 'serving_unit', 'has_recipe', 'is_active')
+    list_filter = ('category', 'is_active', 'has_recipe')
+    search_fields = ('name',)
     ordering = ('category', 'name')
     readonly_fields = ('has_recipe',)
 

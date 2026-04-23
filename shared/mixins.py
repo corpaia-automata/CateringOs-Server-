@@ -54,3 +54,7 @@ class BaseMixin(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin):
 
     class Meta:
         abstract = True
+        # Use the unfiltered manager for FK lookups and related object access.
+        # Without this, Django may use ActiveManager for FK traversal, causing
+        # DoesNotExist when accessing soft-deleted related objects.
+        base_manager_name = 'all_objects'

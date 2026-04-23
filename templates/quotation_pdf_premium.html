@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4;
+    margin: 12mm 14mm 16mm 14mm;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #101828;
+  }
+
+  .sheet {
+    border: 1px solid #d7def0;
+    background: #ffffff;
+  }
+
+  .brand-head {
+    background: #0f172a;
+    color: #ffffff;
+    padding: 14px 16px 12px 16px;
+  }
+
+  .brand-row {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .brand-row td {
+    vertical-align: middle;
+  }
+
+  .brand-logo {
+    width: 74px;
+    height: auto;
+  }
+
+  .brand-title {
+    text-align: right;
+  }
+
+  .brand-title h1 {
+    font-size: 22px;
+    letter-spacing: 0.6px;
+    margin-bottom: 2px;
+  }
+
+  .brand-title p {
+    font-size: 11px;
+    color: #c7d2fe;
+  }
+
+  .content {
+    padding: 14px 16px;
+  }
+
+  .meta-grid {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+  }
+
+  .meta-grid td {
+    border: 1px solid #e5e7eb;
+    padding: 8px 10px;
+    vertical-align: top;
+    width: 50%;
+  }
+
+  .meta-label {
+    font-size: 10px;
+    font-weight: bold;
+    color: #64748b;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .meta-value {
+    font-size: 12px;
+    color: #0f172a;
+    font-weight: 600;
+  }
+
+  .section-chip {
+    display: inline-block;
+    background: #eef2ff;
+    color: #3730a3;
+    border: 1px solid #c7d2fe;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    padding: 4px 8px;
+    margin: 2px 0 8px 0;
+    text-transform: uppercase;
+  }
+
+  .line-items {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+  }
+
+  .line-items th {
+    background: #f8fafc;
+    color: #334155;
+    font-size: 10px;
+    text-transform: uppercase;
+    border: 1px solid #e2e8f0;
+    padding: 7px 8px;
+    text-align: left;
+  }
+
+  .line-items td {
+    border: 1px solid #e2e8f0;
+    padding: 8px;
+    font-size: 11.5px;
+  }
+
+  .line-items .num { text-align: right; }
+  .line-items .kind { color: #64748b; font-size: 10px; text-transform: uppercase; }
+
+  .totals {
+    width: 46%;
+    margin-left: auto;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+  }
+
+  .totals td {
+    border: 1px solid #e2e8f0;
+    padding: 8px 10px;
+    font-size: 11.5px;
+  }
+
+  .totals .label { color: #334155; font-weight: 600; }
+  .totals .value { text-align: right; font-weight: 700; }
+  .totals .grand {
+    background: #0f172a;
+    color: #ffffff;
+  }
+
+  .benefits-wrap {
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 9px 10px 7px 10px;
+    margin-bottom: 12px;
+  }
+
+  .benefits-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+  }
+
+  .benefits-item {
+    font-size: 11px;
+    margin-bottom: 4px;
+    color: #334155;
+  }
+
+  .foot {
+    border-top: 1px solid #dbe3f6;
+    padding: 10px 16px 12px 16px;
+    font-size: 10.5px;
+    color: #475569;
+    text-align: center;
+  }
+
+  .foot .quote-no {
+    color: #0f172a;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="brand-head">
+    <table class="brand-row">
+      <tr>
+        <td>
+          {% if logo_path %}
+          <img src="{{ logo_path }}" alt="Afsal Catering" class="brand-logo" />
+          {% endif %}
+        </td>
+        <td class="brand-title">
+          <h1>Premium Quotation</h1>
+          <p>Crafted menu proposal for your event</p>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="content">
+    <table class="meta-grid">
+      <tr>
+        <td>
+          <div class="meta-label">Customer Name</div>
+          <div class="meta-value">{{ customer_name }}</div>
+        </td>
+        <td>
+          <div class="meta-label">Contact Number</div>
+          <div class="meta-value">{{ contact_number }}</div>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <div class="meta-label">Event</div>
+          <div class="meta-value">{{ event_type }}</div>
+        </td>
+        <td>
+          <div class="meta-label">Guests</div>
+          <div class="meta-value">{{ guest_count }}</div>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <div class="meta-label">Service Type</div>
+          <div class="meta-value">{{ service_type }}</div>
+        </td>
+        <td>
+          <div class="meta-label">Date &amp; Day</div>
+          <div class="meta-value">{{ event_date }}{% if event_day %} &amp; {{ event_day }}{% endif %}</div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <div class="meta-label">Venue</div>
+          <div class="meta-value">{{ venue }}</div>
+        </td>
+      </tr>
+    </table>
+
+    <div class="section-chip">Menu & Services</div>
+    <table class="line-items">
+      <tr>
+        <th style="width:8%;">#</th>
+        <th style="width:50%;">Item</th>
+        <th style="width:22%;">Quantity</th>
+        <th style="width:20%;">Amount</th>
+      </tr>
+      {% for row in menu_rows %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>
+          <div>{{ row.name }}</div>
+          <div class="kind">{{ row.kind }}</div>
+        </td>
+        <td class="num">{{ row.qty_text }}</td>
+        <td class="num">₹{{ row.amount }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <table class="totals">
+      <tr>
+        <td class="label">Dishes Subtotal</td>
+        <td class="value">₹{{ dish_subtotal }}</td>
+      </tr>
+      <tr>
+        <td class="label">Services Subtotal</td>
+        <td class="value">₹{{ service_subtotal }}</td>
+      </tr>
+      <tr class="grand">
+        <td class="label" style="color:#fff;">Estimated Total</td>
+        <td class="value">₹{{ estimated_total }}</td>
+      </tr>
+    </table>
+
+    <div class="benefits-wrap">
+      <div class="benefits-title">Customer Benefits Included</div>
+      {% for benefit in benefits %}
+      <div class="benefits-item">• {{ benefit }}</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="foot">
+    <p class="quote-no">QUOTATION MENU #{{ quote_number }}</p>
+    <p>Thank you for choosing CaterPro! {{ generated_at }}</p>
+    <p style="margin-top:4px;">NEAR GAS GODOWN, MULLAMPARA, MANJERI | 9946 395 402, 8136 873 402</p>
+  </div>
+</div>
+</body>
+</html>

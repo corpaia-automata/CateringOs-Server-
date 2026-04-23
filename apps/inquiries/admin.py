@@ -9,4 +9,4 @@ class InquiryAdmin(admin.ModelAdmin):
     list_filter    = ('status', 'source_channel')
     search_fields  = ('customer_name', 'contact_number', 'event_type')
     ordering       = ('-created_at',)
-    readonly_fields = ('id', 'converted_event', 'created_at', 'updated_at')
+    readonly_fields = ('id', 'created_at', 'updated_at')

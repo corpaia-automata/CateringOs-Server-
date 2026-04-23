@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 
+from apps.master.views import CategoryListView
 from apps.tenants.views import OnboardView
 
 urlpatterns = [
@@ -8,6 +9,9 @@ urlpatterns = [
 
     # Public onboarding (no auth, no tenant context)
     path('api/onboard/', OnboardView.as_view(), name='onboard'),
+
+    # Public global categories (no auth, no tenant context)
+    path('api/categories/', CategoryListView.as_view(), name='categories'),
 
     # Global auth (non-tenant-scoped)
     path('api/auth/', include('apps.authentication.urls')),

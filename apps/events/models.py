@@ -39,6 +39,22 @@ class Event(BaseMixin):
         related_name='events',
         db_column='tenant_id',
     )
+    inquiry = models.ForeignKey(
+        'inquiries.Inquiry',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='events',
+        db_column='inquiry_id',
+    )
+    quotation = models.OneToOneField(
+        'quotations.Quotation',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='event',
+        db_column='quotation_id',
+    )
     event_code              = models.CharField(max_length=30, unique=True, editable=False)
     customer_name           = models.CharField(max_length=255)
     contact_number          = models.CharField(max_length=20, blank=True)

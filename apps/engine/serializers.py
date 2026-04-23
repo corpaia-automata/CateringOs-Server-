@@ -21,7 +21,8 @@ class EventIngredientSerializer(serializers.ModelSerializer):
 
     def get_total_quantity(self, obj):
         qty, _ = format_quantity(obj.total_quantity, obj.unit)
-        return float(qty)
+        # Return string, not float — preserves Decimal precision across JSON boundary.
+        return str(qty)
 
     def get_unit(self, obj):
         _, unit = format_quantity(obj.total_quantity, obj.unit)
