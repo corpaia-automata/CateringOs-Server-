@@ -34,7 +34,7 @@ class DishCategorySerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'created_at', 'updated_at')
 
 
-VALID_RECIPE_UNITS = {'kg', 'g', 'litre', 'ml', 'piece', 'packet', 'box', 'dozen'}
+VALID_RECIPE_UNITS = {'kg', 'g', 'litre', 'ml', 'piece', 'packet', 'box', 'dozen', 'unit', 'peeled'}
 
 
 class DishRecipeSerializer(serializers.ModelSerializer):
@@ -141,14 +141,15 @@ class DishSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        """Cross-field validation: cannot activate a dish with no recipe."""
-        is_active = attrs.get('is_active', getattr(self.instance, 'is_active', True))
-        if is_active and self.instance and not self.instance.has_recipe:
-            # Only block on explicit activation attempt
-            if attrs.get('is_active') is True:
-                raise serializers.ValidationError(
-                    {'is_active': 'Cannot activate a dish that has no recipe lines.'}
-                )
+        """Cannot turn a no-recipe dish active; allow edits while already active."""
+        instance = self.instance
+        if not instance:
+            return attrs
+        becoming_active = attrs.get('is_active') is True and not instance.is_active
+        if becoming_active and not instance.has_recipe:
+            raise serializers.ValidationError(
+                {'is_active': 'Cannot activate a dish that has no recipe lines.'}
+            )
         return attrs
 
     def get_estimated_cost_per_serving(self, dish) -> str:

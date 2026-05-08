@@ -1,0 +1,18 @@
+<section class="pricing" aria-label="Pricing summary">
+  <table class="pricing__table">
+    <tbody>
+      <tr>
+        <td class="pricing__label">Subtotal</td>
+        <td class="pricing__value">{{ subtotal_str }}</td>
+      </tr>
+      <tr>
+        <td class="pricing__label">VAT 10%</td>
+        <td class="pricing__value">{{ tax_amount_str }}</td>
+      </tr>
+      <tr class="pricing__row--total">
+        <td class="pricing__label">Total</td>
+        <td class="pricing__value pricing__value--grand">{{ grand_total_str }}</td>
+      </tr>
+    </tbody>
+  </table>
+</section>

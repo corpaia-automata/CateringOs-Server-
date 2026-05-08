@@ -11,13 +11,9 @@ class Inquiry(BaseMixin):
         WALK_IN    = 'WALK_IN',    'Walk-In'
 
     class Status(models.TextChoices):
-        PLANNING  = 'PLANNING',  'Planning'
-        NEW       = 'NEW',       'New'
-        QUALIFIED = 'QUALIFIED', 'Qualified'
-        FOLLOW_UP = 'FOLLOW_UP', 'Follow Up'
-        QUOTED    = 'QUOTED',    'Quoted'
-        CONFIRMED = 'CONFIRMED', 'Confirmed'
-        REJECTED  = 'REJECTED',  'Rejected'
+        PLANNING = 'PLANNING', 'Planning'
+        SUCCESS  = 'SUCCESS',  'Success'
+        LOST     = 'LOST',     'Lost'
 
     tenant = models.ForeignKey(
         'tenants.Tenant',
@@ -28,16 +24,17 @@ class Inquiry(BaseMixin):
     customer_name   = models.CharField(max_length=255)
     contact_number  = models.CharField(max_length=20, blank=True)
     email           = models.EmailField(blank=True, default='')
-    source_channel  = models.CharField(max_length=15, choices=SourceChannel.choices)
+    source_channel  = models.CharField(max_length=15, choices=SourceChannel.choices, blank=True, default='')
     event_type      = models.CharField(max_length=100)
     tentative_date  = models.DateField()
+    venue           = models.CharField(max_length=255, blank=True, default='')
     guest_count        = models.PositiveIntegerField(default=1)
     estimated_budget   = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     notes              = models.TextField(blank=True)
     status          = models.CharField(
         max_length=15,
         choices=Status.choices,
-        default=Status.NEW,
+        default=Status.PLANNING,
         db_index=True,
     )
     converted_event = models.ForeignKey(

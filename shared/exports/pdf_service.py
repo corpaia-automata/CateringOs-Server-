@@ -4,8 +4,8 @@ from django.template.loader import render_to_string
 
 
 def generate_pdf(template_name: str, context: dict) -> bytes:
-    """Render an HTML template to PDF bytes using xhtml2pdf."""
-    from xhtml2pdf import pisa  # lazy import
+    """Render an HTML template to PDF via xhtml2pdf (ReportLab)."""
+    from xhtml2pdf import pisa
 
     html_string = render_to_string(template_name, context)
     buffer = io.BytesIO()

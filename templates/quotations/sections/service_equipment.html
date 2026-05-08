@@ -1,0 +1,44 @@
+{# Variables: data.title, data.items (list of strings), data.two_column (bool) #}
+<div style="width:794px;min-height:1123px;margin:0 auto;box-sizing:border-box;background:#fff;color:#1a4a2e;font-family:Georgia,'Times New Roman',serif;padding:44px 48px 56px;position:relative;">
+  <h2 style="margin:0 0 24px;font-size:22px;font-weight:700;color:#1a4a2e;border-left:5px solid #c8a84b;padding-left:14px;">{{ data.title|default:'Service & equipment' }}</h2>
+  {% if data.two_column %}
+  <div style="display:flex;gap:28px;font-size:12px;line-height:1.65;color:#2d3748;font-family:system-ui,sans-serif;">
+    <div style="flex:1;">
+      {% if data.items %}
+        {% for it in data.items %}
+          {% if forloop.counter0|divisibleby:2 %}
+          <div style="margin-bottom:10px;display:flex;gap:8px;">
+            <span style="color:#c8a84b;line-height:1.5;">&#9830;</span><span>{{ it }}</span>
+          </div>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    </div>
+    <div style="width:2px;background:linear-gradient(180deg,transparent,#e2e8f0 10%,#e2e8f0 90%,transparent);flex-shrink:0;"></div>
+    <div style="flex:1;">
+      {% if data.items %}
+        {% for it in data.items %}
+          {% if not forloop.counter0|divisibleby:2 %}
+          <div style="margin-bottom:10px;display:flex;gap:8px;">
+            <span style="color:#c8a84b;line-height:1.5;">&#9830;</span><span>{{ it }}</span>
+          </div>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div style="font-size:12px;line-height:1.65;color:#2d3748;font-family:system-ui,sans-serif;">
+    {% if data.items %}
+      {% for it in data.items %}
+      <div style="margin-bottom:10px;display:flex;gap:8px;">
+        <span style="color:#c8a84b;line-height:1.5;">&#9830;</span><span>{{ it }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="color:#94a3b8;">—</p>
+    {% endif %}
+  </div>
+  {% endif %}
+  <div style="position:absolute;left:0;right:0;bottom:0;height:10px;background:#c8a84b;"></div>
+</div>

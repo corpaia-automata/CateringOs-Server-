@@ -44,6 +44,7 @@ class Ingredient(BaseMixin):
         PACKET = 'packet', 'Packet'
         BOX    = 'box',    'Box'
         DOZEN  = 'dozen',  'Dozen'
+        PEELED = 'peeled', 'Peeled'  # e.g. garlic/peeled count (recipe line UOM)
 
     tenant = models.ForeignKey(
         'tenants.Tenant',
@@ -182,8 +183,11 @@ class Dish(BaseMixin):
     @property
     def estimated_cost_per_serving(self):
         from decimal import Decimal
+
+        from apps.master.recipe_unit_cost import effective_rate_per_recipe_unit
+
         ingredient_cost = sum(
-            (line.qty_per_unit * line.ingredient.unit_cost)
+            (line.qty_per_unit * effective_rate_per_recipe_unit(line))
             for line in self.recipe_lines.select_related('ingredient').all()
         )
         # labour_cost may be NULL in DB for dishes migrated before the field had a default
@@ -194,7 +198,7 @@ class Dish(BaseMixin):
 class DishRecipe(BaseMixin):
     """
     Single source of truth for both CalculationEngine (quantities) and
-    cost estimation (qty_per_unit × ingredient.unit_cost).
+    cost estimation (qty_per_unit × rate per line ``unit``; see unit_cost_snapshot).
     """
     tenant = models.ForeignKey(
         'tenants.Tenant',
@@ -210,8 +214,9 @@ class DishRecipe(BaseMixin):
     )
     qty_per_unit       = models.DecimalField(max_digits=12, decimal_places=4)
     unit               = models.CharField(max_length=10)
-    # Snapshot of ingredient.unit_cost at time of recipe save.
-    # Protects historical quotation cost even if master price changes later.
+    # Cost per this line's ``unit`` (e.g. per g when unit='g'), converted from
+    # Ingredient.unit_cost when the master UOM differs (kg→g ÷1000, etc.).
+    # Protects historical cost even if master price changes later.
     unit_cost_snapshot = models.DecimalField(max_digits=12, decimal_places=4, default=0)
 
     class Meta:
@@ -221,7 +226,11 @@ class DishRecipe(BaseMixin):
     def save(self, *args, **kwargs):
         # Always keep unit_cost_snapshot in sync when saving individual lines.
         # bulk_create bypasses this — see DishRecipeViewSet.replace_all for bulk handling.
-        self.unit_cost_snapshot = self.ingredient.unit_cost
+        from apps.master.recipe_unit_cost import unit_cost_snapshot_for_recipe_line
+
+        self.unit_cost_snapshot = unit_cost_snapshot_for_recipe_line(
+            self.ingredient, str(self.unit or '')
+        )
         super().save(*args, **kwargs)
 
     def __str__(self):

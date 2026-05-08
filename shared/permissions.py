@@ -27,3 +27,25 @@ class IsTenantScopedJWT(BasePermission):
             return True  # non-tenant route — skip cross-tenant check
         token_tenant_id = str(request.auth.get('tenant_id', '')) if request.auth else ''
         return token_tenant_id == request_tenant_id
+
+
+class HasTenantMembership(BasePermission):
+    """
+    For routes that are NOT under /api/app/<slug>/ (no request.tenant_id).
+
+    Ensures the user belongs to a workspace and that the JWT tenant_id claim
+    matches user.tenant_id when the token carries a tenant_id.
+    """
+
+    message = 'Authenticated workspace membership required.'
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        ut = getattr(request.user, 'tenant_id', None)
+        if ut is None:
+            return False
+        token_tid = str(request.auth.get('tenant_id', '')) if request.auth else ''
+        if token_tid and str(ut) != token_tid:
+            return False
+        return True

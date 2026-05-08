@@ -38,7 +38,7 @@ class User(AbstractBaseUser, PermissionsMixin, BaseMixin):
         related_name='users',
         db_column='tenant_id',
     )
-    email = models.EmailField()
+    email = models.EmailField(db_index=True)
     first_name = models.CharField(max_length=150)
     last_name = models.CharField(max_length=150)
     phone = models.CharField(max_length=20, blank=True)

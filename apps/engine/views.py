@@ -23,7 +23,7 @@ class EventIngredientViewSet(
     viewsets.GenericViewSet,
 ):
     """
-    Read-only. EventIngredient rows are written exclusively by CalculationEngine.
+    Read-only. EventIngredient rows are refreshed by event recalculation.
     Supports ?event=<uuid> and ?category=MEAT|GROCERY|… filtering.
     """
     serializer_class = EventIngredientSerializer

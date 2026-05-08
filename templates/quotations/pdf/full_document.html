@@ -1,0 +1,18 @@
+{# Expects: pages_data — list of { type: 'cover_page', data: { ... } } #}
+{# Optional: quotation, tenant for wrappers #}
+<style type="text/css">
+  @page { size: A4; margin: 0; }
+</style>
+{% for page in pages_data %}
+<div style="width:794px;margin:0 auto;box-sizing:border-box;{% if not forloop.last %}page-break-after:always;{% endif %}">
+  {% if page.type %}
+    {% with template_name="quotations/sections/"|add:page.type|add:".html" %}
+      {% include template_name with data=page.data %}
+    {% endwith %}
+  {% endif %}
+</div>
+{% empty %}
+<div style="width:794px;margin:0 auto;padding:48px;font-family:system-ui,sans-serif;color:#64748b;">
+  No pages in quotation document.
+</div>
+{% endfor %}

@@ -1,5 +1,7 @@
+from django.conf import settings
 from django.db import models
 from django.core.exceptions import ValidationError
+from copy import deepcopy
 from shared.mixins import BaseMixin
 
 
@@ -69,7 +71,15 @@ class Event(BaseMixin):
     payment_status          = models.CharField(max_length=15, choices=PaymentStatus.choices, blank=True)
     total_amount            = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     advance_amount          = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    credited_amount         = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    extra_charges           = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_cost              = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     menu_locked             = models.BooleanField(default=False)
+    menu_snapshot           = models.JSONField(default=dict, blank=True)
+    services_snapshot       = models.JSONField(default=list, blank=True)
+    costing_snapshot        = models.JSONField(default=dict, blank=True)
+    grocery_snapshot        = models.JSONField(default=dict, blank=True)
+    pricing_snapshot        = models.JSONField(default=dict, blank=True)
     notes                   = models.TextField(blank=True)
 
     class Meta:
@@ -110,3 +120,54 @@ class Event(BaseMixin):
             )
         self.status = new_status
         self.save(update_fields=['status', 'updated_at'])
+
+    def set_snapshot_data(self, *, menu_data, services_data, costing_data, grocery_data, pricing_data):
+        # Defensive deep copy ensures no in-memory shared references are kept.
+        self.menu_snapshot = deepcopy(menu_data) if menu_data is not None else {}
+        self.services_snapshot = deepcopy(services_data) if services_data is not None else []
+        self.costing_snapshot = deepcopy(costing_data) if costing_data is not None else {}
+        self.grocery_snapshot = deepcopy(grocery_data) if grocery_data is not None else {}
+        self.pricing_snapshot = deepcopy(pricing_data) if pricing_data is not None else {}
+
+
+class EventLog(BaseMixin):
+
+    class ActionType(models.TextChoices):
+        ADD_DISH = 'ADD_DISH', 'Add Dish'
+        UPDATE_DISH = 'UPDATE_DISH', 'Update Dish'
+        REMOVE_DISH = 'REMOVE_DISH', 'Remove Dish'
+        UPDATE_QTY = 'UPDATE_QTY', 'Update Quantity'
+        ADD_SERVICE = 'ADD_SERVICE', 'Add Service'
+        UPDATE_SERVICE = 'UPDATE_SERVICE', 'Update Service'
+        REMOVE_SERVICE = 'REMOVE_SERVICE', 'Remove Service'
+        COST_CHANGE = 'COST_CHANGE', 'Cost Change'
+        PRICE_CHANGE = 'PRICE_CHANGE', 'Price Change'
+        EXTRA_CHARGE = 'EXTRA_CHARGE', 'Extra Charge'
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name='logs',
+        db_column='event_id',
+    )
+    action_type = models.CharField(max_length=30, choices=ActionType.choices)
+    description = models.TextField(blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='event_logs',
+        db_column='user_id',
+    )
+
+    class Meta:
+        db_table = 'event_logs'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['event', 'created_at']),
+            models.Index(fields=['action_type']),
+        ]
+
+    def __str__(self):
+        return f'{self.event_id} — {self.action_type}'

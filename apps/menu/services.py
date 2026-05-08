@@ -38,6 +38,6 @@ class MenuService:
     def remove_dish(instance: EventMenuItem) -> None:
         """
         Soft-deletes a menu item.
-        post_save signal fires after soft_delete → CalculationEngine recalculates.
+        post_save signal fires after soft_delete and refreshes event calculations.
         """
         instance.soft_delete()

@@ -34,6 +34,7 @@ UNIT_NORMALISATION = {
     'packet': ('packet', Decimal('1')),
     'box':    ('box', Decimal('1')),
     'unit':   ('piece', Decimal('1')),
+    'peeled': ('piece', Decimal('1')),
 }
 
 
@@ -114,10 +115,10 @@ class CalculationEngine:
                 continue
 
             for line in item.recipe_snapshot:
-                # Fix 2: strip + lower; model stores 'RENTAL'/'OTHER' (not 'rentals'/'others')
+                # Fixed charges such as rentals, kitchen, fuel, and labour are one-time
+                # event costs; they should not scale with the dish quantity.
                 category = str(line.get('category', '')).strip().lower()
-                if category in ('rental', 'rentals', 'other', 'others'):
-                    continue
+                is_fixed_charge = category in ('rental', 'rentals', 'other', 'others')
 
                 # Fix 3: guard against batch_size = 0 or missing
                 raw_batch = str(line.get('batch_size') or '1')
@@ -142,7 +143,7 @@ class CalculationEngine:
                 FLAT_CHARGE_UNITS = {'unit', 'nos', 'no'}
                 effective_scale = (
                     Decimal('1')
-                    if line['unit'].lower() in FLAT_CHARGE_UNITS
+                    if is_fixed_charge or line['unit'].lower() in FLAT_CHARGE_UNITS
                     else dish_qty / batch_size
                 )
                 raw_qty = qty_per_unit * effective_scale

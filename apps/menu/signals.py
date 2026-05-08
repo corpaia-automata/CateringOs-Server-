@@ -17,7 +17,6 @@ def on_menu_item_hard_deleted(sender, instance, **kwargs):
 
 
 def _run_engine(event_id):
-    # Lazy import avoids circular dependency at module load time:
-    # menu.signals → engine.calculation → (lazy) menu.EventMenuItem
-    from apps.engine.calculation import CalculationEngine
-    CalculationEngine.run(event_id)
+    # Event snapshots are the canonical source for event execution outputs.
+    from apps.events.services import recalculate_event
+    recalculate_event(event_id)

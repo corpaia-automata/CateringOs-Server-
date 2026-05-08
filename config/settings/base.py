@@ -29,7 +29,7 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    'apps.tenants',
+    'apps.tenants.apps.TenantsConfig',
     'apps.authentication',
     'apps.inquiries',
     'apps.events',
@@ -54,6 +54,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # Resolves /api/app/<slug>/... → sets request.tenant* + activates RLS
     'shared.middleware.TenantResolverMiddleware',
+    'shared.middleware.TrialEnforcementMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -100,6 +101,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'static']
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -158,3 +160,22 @@ CORS_ALLOW_METHODS = [
 # In this multi-tenant setup, uniqueness is enforced at the DB level via
 # UNIQUE(tenant_id, email) — the same email may belong to different tenants.
 SILENCED_SYSTEM_CHECKS = ['auth.E003']
+
+# Celery (optional broker in prod; see ``CELERY_TASK_ALWAYS_EAGER`` for local dev)
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://127.0.0.1:6379/0')
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default=CELERY_BROKER_URL)
+CELERY_TASK_ALWAYS_EAGER = env.bool('CELERY_TASK_ALWAYS_EAGER', default=False)
+CELERY_TASK_EAGER_PROPAGATES = True
+
+# -----------------------------------------------------------------------------
+# Public site + S3 (Playwright PDF task, ``apps.quotations.tasks.generate_quotation_pdf``)
+# TODO: Set ``SITE_URL`` in .env to the frontend origin that serves ``/q/<token>`` (no trailing slash required).
+# Example: SITE_URL=https://app.example.com
+SITE_URL = env('SITE_URL', default='')
+
+# TODO: Configure bucket and credentials (or use IAM instance role and leave keys empty).
+# AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY — optional when using IAM role on AWS.
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID', default='')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY', default='')
+AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME', default='us-east-1')
+AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME', default='')

@@ -1,0 +1,39 @@
+{# Variables: data.logo_url, data.rows — list of {label,value}, data.photo_strip_urls #}
+<div style="width:794px;min-height:1123px;margin:0 auto;box-sizing:border-box;background:#fff;color:#1a4a2e;font-family:Georgia,'Times New Roman',serif;padding:36px 40px 120px;position:relative;display:flex;flex-direction:column;">
+  <div style="text-align:center;margin-bottom:28px;">
+    {% if data.logo_url %}
+    <img src="{{ data.logo_url }}" alt="" style="max-height:64px;margin-bottom:20px;"/>
+    {% endif %}
+    <h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:0.18em;color:#1a4a2e;">CATERING QUOTATION</h1>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:system-ui,-apple-system,sans-serif;margin-bottom:28px;">
+    {% if data.rows %}
+      {% for row in data.rows %}
+      <tr>
+        <td style="padding:10px 12px;border:1px solid #e2e8f0;background:#f8faf8;width:32%;font-weight:600;color:#1a4a2e;">{{ row.label }}</td>
+        <td style="padding:10px 12px;border:1px solid #e2e8f0;color:#2d3748;">{{ row.value }}</td>
+      </tr>
+      {% endfor %}
+    {% else %}
+      <tr><td style="padding:10px 12px;border:1px solid #e2e8f0;background:#f8faf8;width:32%;font-weight:600;">Date</td><td style="padding:10px 12px;border:1px solid #e2e8f0;">{{ data.date|default:'—' }}</td></tr>
+      <tr><td style="padding:10px 12px;border:1px solid #e2e8f0;background:#f8faf8;font-weight:600;">Client Name</td><td style="padding:10px 12px;border:1px solid #e2e8f0;">{{ data.client_name|default:'—' }}</td></tr>
+      <tr><td style="padding:10px 12px;border:1px solid #e2e8f0;background:#f8faf8;font-weight:600;">Service</td><td style="padding:10px 12px;border:1px solid #e2e8f0;">{{ data.service|default:'—' }}</td></tr>
+      <tr><td style="padding:10px 12px;border:1px solid #e2e8f0;background:#f8faf8;font-weight:600;">Ceremony</td><td style="padding:10px 12px;border:1px solid #e2e8f0;">{{ data.ceremony|default:'—' }}</td></tr>
+      <tr><td style="padding:10px 12px;border:1px solid #e2e8f0;background:#f8faf8;font-weight:600;">Pax</td><td style="padding:10px 12px;border:1px solid #e2e8f0;">{{ data.pax|default:'—' }}</td></tr>
+      <tr><td style="padding:10px 12px;border:1px solid #e2e8f0;background:#f8faf8;font-weight:600;">Venue</td><td style="padding:10px 12px;border:1px solid #e2e8f0;">{{ data.venue|default:'—' }}</td></tr>
+      <tr><td style="padding:10px 12px;border:1px solid #e2e8f0;background:#f8faf8;font-weight:600;">Total Cost</td><td style="padding:10px 12px;border:1px solid #e2e8f0;color:#c8a84b;font-weight:700;">{{ data.total_cost|default:'—' }}</td></tr>
+    {% endif %}
+  </table>
+  <div style="display:flex;gap:6px;margin-top:auto;height:96px;overflow:hidden;">
+    {% if data.photo_strip_urls %}
+      {% for u in data.photo_strip_urls %}
+      <div style="flex:1;background:#1a4a2e url('{{ u }}') center/cover no-repeat;min-width:0;"></div>
+      {% endfor %}
+    {% else %}
+      <div style="flex:1;background:linear-gradient(90deg,#1a4a2e,#2d6a47);"></div>
+      <div style="flex:1;background:linear-gradient(90deg,#2d6a47,#1a4a2e);"></div>
+      <div style="flex:1;background:linear-gradient(90deg,#1a4a2e,#c8a84b);"></div>
+    {% endif %}
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;height:10px;background:#c8a84b;"></div>
+</div>

@@ -11,9 +11,9 @@ class EventMenuItemSerializer(serializers.ModelSerializer):
             'event',
             'dish',
             'dish_name_snapshot',
-            'unit_type_snapshot',
+            'serving_unit_snapshot',
             'quantity',
-            'quantity_unit',          # writable; defaults to dish.unit_type in model.save()
+            'quantity_unit',          # writable; defaults to dish.serving_unit in model.save()
             'recipe_snapshot',
             'sort_order',
             'created_at',
@@ -23,7 +23,7 @@ class EventMenuItemSerializer(serializers.ModelSerializer):
             'id',
             'event',                  # set from URL in perform_create
             'dish_name_snapshot',     # frozen in save()
-            'unit_type_snapshot',     # frozen in save()
+            'serving_unit_snapshot',  # frozen in save()
             'recipe_snapshot',        # frozen in save()
             'created_at',
             'updated_at',

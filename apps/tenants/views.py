@@ -1,15 +1,15 @@
 import copy
 import re
 
-from django.utils import timezone
-from datetime import timedelta
-
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from shared import cache
+
+from apps.quotations.template_defaults import ensure_tenant_default_quotation_template_fk
 
 from .models import Tenant
 from .serializers import OnboardSerializer
@@ -71,6 +71,15 @@ def _deep_merge(base: dict, override: dict) -> None:
             base[key] = val
 
 
+def _subscription_payload(tenant):
+    return {
+        'subscription_status': tenant.subscription_status,
+        'trial_days_left': tenant.trial_days_left,
+        'trial_ends_at': tenant.trial_ends_at.isoformat() if tenant.trial_ends_at else None,
+        'has_active_access': tenant.has_active_access,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Views
 # ---------------------------------------------------------------------------
@@ -94,19 +103,23 @@ class OnboardView(APIView):
         country = (data.get('country') or 'IN').upper()
         config = copy.deepcopy(COUNTRY_CONFIGS.get(country, COUNTRY_CONFIGS['IN']))
 
-        # Create tenant
+        # When ``defaultTemplate`` is omitted or null, use classic.
+        raw_tpl = data.get('defaultTemplate')
+        default_template = 'classic' if raw_tpl is None else raw_tpl
+
         tenant = Tenant.objects.create(
             slug=slug,
             name=data['companyName'],
             plan=data.get('plan') or 'starter',
             config=config,
             status='active',
-            trial_ends_at=timezone.now() + timedelta(days=14),
+            default_template=default_template,
         )
+        ensure_tenant_default_quotation_template_fk(tenant)
 
         # Create admin user (lazy import avoids circular deps)
         from apps.authentication.models import User
-        User.objects.create_user(
+        user = User.objects.create_user(
             email=data['email'],
             password=data['password'],
             tenant=tenant,
@@ -114,12 +127,25 @@ class OnboardView(APIView):
             first_name='',
             last_name='',
         )
+        refresh = RefreshToken.for_user(user)
+        refresh['tenant_id'] = str(user.tenant_id)
+        refresh['tenant_slug'] = tenant.slug
+        refresh['role'] = user.role
+        refresh['email'] = user.email
 
         return Response(
             {
                 'slug': slug,
                 'appUrl': f'/app/{slug}/dashboard',
-                'trialDays': 14,
+                'tenant_slug': slug,
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'user': {
+                    'id': str(user.id),
+                    'email': user.email,
+                    'name': user.full_name,
+                },
+                'subscription': _subscription_payload(tenant),
             },
             status=status.HTTP_201_CREATED,
         )

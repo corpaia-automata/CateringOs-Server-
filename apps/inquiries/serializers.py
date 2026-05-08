@@ -4,16 +4,56 @@ from .models import Inquiry, PreEstimate, PreEstimateCategory, PreEstimateItem
 
 
 class InquirySerializer(serializers.ModelSerializer):
+    has_quotation = serializers.SerializerMethodField()
+    latest_quotation_status = serializers.SerializerMethodField()
+    converted_event_id = serializers.UUIDField(source='converted_event.id', read_only=True)
+    converted_event_status = serializers.CharField(source='converted_event.status', read_only=True)
 
     class Meta:
         model  = Inquiry
         fields = (
             'id', 'customer_name', 'contact_number', 'email',
-            'source_channel', 'event_type', 'tentative_date',
+            'source_channel', 'event_type', 'tentative_date', 'venue',
             'guest_count', 'estimated_budget', 'notes', 'status',
+            'has_quotation', 'latest_quotation_status',
+            'converted_event_id', 'converted_event_status',
             'created_at', 'updated_at',
         )
         read_only_fields = ('id', 'created_at', 'updated_at')
+        extra_kwargs = {
+            'source_channel': {'required': False, 'allow_blank': True},
+        }
+
+    def get_has_quotation(self, obj):
+        from apps.quotations.models import Quotation
+
+        return Quotation.objects.filter(inquiry_id=obj.pk).exists()
+
+    def get_latest_quotation_status(self, obj):
+        from apps.quotations.models import Quotation
+
+        latest = (
+            Quotation.objects.filter(inquiry_id=obj.pk)
+            .order_by('-created_at')
+            .values_list('status', flat=True)
+            .first()
+        )
+        return latest
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        raw_status = (data.get('status') or '').upper()
+
+        if raw_status in {'LOST', 'REJECTED'}:
+            data['status'] = 'LOST'
+        elif raw_status in {'SUCCESS', 'CONFIRMED'}:
+            data['status'] = 'SUCCESS'
+        elif getattr(instance, 'converted_event', None) and getattr(instance.converted_event, 'status', None) == 'CONFIRMED':
+            data['status'] = 'SUCCESS'
+        elif raw_status in {'PLANNING', 'NEW', 'QUALIFIED', 'FOLLOW_UP', 'QUOTED'}:
+            data['status'] = 'PLANNING'
+
+        return data
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quotation {{ reference_number }}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap');
+
+  /*
+   * CSS variables are set from flat context values.
+   * _resolve_css_vars() inlines them for xhtml2pdf fallback.
+   * NOTE: --primary maps to accent_color (gold/highlight),
+   *       --accent  maps to primary_color (dark brand).
+   */
+  :root {
+    --primary: {{ accent_color }};
+    --accent:  {{ primary_color }};
+    --bg:      #FDFAF5;
+    --surface: #FFFFFF;
+    --muted:   #7A7162;
+    --border:  #E8E0D0;
+    --text:    #2C2520;
+    --light:   #F5F0E8;
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body:    'Jost', 'Helvetica Neue', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  @page { size: A4; margin: 0; }
+
+  html, body {
+    width: 210mm;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 9.5pt;
+    line-height: 1.6;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── COVER PAGE ── */
+  .cover {
+    width: 210mm;
+    height: 297mm;
+    position: relative;
+    page-break-after: always;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .cover-hero {
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    background-size: cover;
+    background-position: center top;
+    z-index: 0;
+  }
+  .cover-hero::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(28,20,14,0.15) 0%,
+      rgba(28,20,14,0.05) 30%,
+      rgba(28,20,14,0.55) 65%,
+      rgba(28,20,14,0.90) 100%
+    );
+  }
+  .cover-hero.no-image {
+    background: linear-gradient(135deg, #2C1F14 0%, #4A3420 40%, #1C1209 100%);
+  }
+  .cover-hero.no-image::after { display: none; }
+
+  .cover-topbar {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10mm 12mm 0;
+  }
+  .cover-logo img { height: 14mm; object-fit: contain; }
+  .cover-logo-text {
+    font-family: var(--font-display);
+    font-size: 18pt;
+    font-weight: 600;
+    color: #FFFFFF;
+    letter-spacing: 0.05em;
+  }
+  .cover-ref {
+    font-family: var(--font-body);
+    font-size: 7.5pt;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    text-align: right;
+    margin-top: 2mm;
+  }
+
+  .cover-bottom {
+    position: absolute;
+    z-index: 10;
+    bottom: 0;
+    left: 0; right: 0;
+    padding: 0 12mm 10mm;
+  }
+  .cover-bottom::before {
+    content: '';
+    display: block;
+    width: 18mm;
+    height: 0.5pt;
+    background: var(--primary);
+    margin-bottom: 5mm;
+  }
+  .cover-label {
+    font-family: var(--font-body);
+    font-size: 7pt;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin-bottom: 2mm;
+  }
+  .cover-client {
+    font-family: var(--font-display);
+    font-size: 34pt;
+    font-weight: 300;
+    font-style: italic;
+    color: #FFFFFF;
+    line-height: 1.1;
+    margin-bottom: 4mm;
+  }
+  .cover-meta { display: flex; gap: 8mm; flex-wrap: wrap; }
+  .cover-meta-item { display: flex; flex-direction: column; gap: 0.5mm; }
+  .cover-meta-item .meta-label {
+    font-size: 6.5pt;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+  }
+  .cover-meta-item .meta-value {
+    font-family: var(--font-display);
+    font-size: 12pt;
+    font-weight: 400;
+    color: #FFFFFF;
+  }
+
+  .cover-stamp {
+    position: absolute;
+    z-index: 10;
+    bottom: 10mm;
+    right: 12mm;
+    text-align: right;
+  }
+  .cover-stamp .stamp-date {
+    font-size: 7pt;
+    font-weight: 300;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+  }
+  .cover-stamp .stamp-qtn {
+    font-family: var(--font-display);
+    font-size: 9pt;
+    font-weight: 500;
+    color: var(--primary);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── INNER PAGES ── */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 12mm 14mm 20mm;
+    page-break-after: always;
+    position: relative;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 4mm;
+    border-bottom: 0.5pt solid var(--border);
+    margin-bottom: 7mm;
+  }
+  .page-header-brand {
+    font-family: var(--font-display);
+    font-size: 11pt;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+  .page-header-right {
+    font-size: 7pt;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: right;
+  }
+
+  .page-footer {
+    position: absolute;
+    bottom: 8mm;
+    left: 14mm; right: 14mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 0.3pt solid var(--border);
+    padding-top: 2.5mm;
+  }
+  .page-footer-left  { font-size: 6.5pt; color: var(--muted); letter-spacing: 0.1em; }
+  .page-footer-right { font-size: 6.5pt; color: var(--muted); }
+
+  /* ── CLIENT SUMMARY STRIP ── */
+  .client-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    background: var(--accent);
+    border-radius: 1.5mm;
+    overflow: hidden;
+    margin-bottom: 8mm;
+  }
+  .client-strip-cell {
+    padding: 4mm 5mm;
+    border-right: 0.5pt solid rgba(255,255,255,0.1);
+  }
+  .client-strip-cell:last-child { border-right: none; }
+  .client-strip-cell .cs-label {
+    font-size: 6pt;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin-bottom: 1mm;
+  }
+  .client-strip-cell .cs-value {
+    font-family: var(--font-display);
+    font-size: 11pt;
+    font-weight: 400;
+    color: #FFFFFF;
+    line-height: 1.3;
+  }
+  .client-strip-cell .cs-sub {
+    font-size: 7pt;
+    color: rgba(255,255,255,0.55);
+    margin-top: 0.5mm;
+  }
+
+  /* ── SECTION HEADERS ── */
+  .section { margin-bottom: 7mm; }
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 3mm;
+    margin-bottom: 4mm;
+  }
+  .section-title::before {
+    content: '';
+    display: block;
+    width: 3mm; height: 3mm;
+    background: var(--primary);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .section-title h2 {
+    font-family: var(--font-display);
+    font-size: 15pt;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 0.3pt;
+    background: var(--border);
+  }
+
+  /* ── LINE-ITEMS PRICING TABLE ── */
+  .pricing-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+    margin-bottom: 4mm;
+  }
+  .pricing-table thead tr { background: var(--accent); color: #FFFFFF; }
+  .pricing-table thead th {
+    padding: 2.5mm 3.5mm;
+    text-align: left;
+    font-weight: 500;
+    font-size: 7pt;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .pricing-table thead th:last-child,
+  .pricing-table thead th:nth-last-child(2) { text-align: right; }
+  .pricing-table tbody tr { border-bottom: 0.3pt solid var(--border); }
+  .pricing-table tbody tr:nth-child(even) { background: var(--light); }
+  .pricing-table tbody td { padding: 2.5mm 3.5mm; vertical-align: top; }
+  .pricing-table tbody td:last-child,
+  .pricing-table tbody td:nth-last-child(2) { text-align: right; }
+  .pricing-table .item-name   { font-weight: 500; color: var(--text); }
+  .pricing-table .item-note   { font-size: 7.5pt; color: var(--muted); margin-top: 0.5mm; }
+  .pricing-table .item-qty    { color: var(--muted); }
+  .pricing-table .item-amount { font-weight: 500; }
+  .pricing-table .cat-row td {
+    background: var(--light);
+    font-size: 7pt;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--primary);
+    padding: 2mm 3.5mm;
+    border-bottom: none;
+  }
+
+  /* ── PRICING SUMMARY BOX ── */
+  .pricing-summary-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 3mm;
+    margin-bottom: 8mm;
+  }
+  .pricing-summary {
+    width: 72mm;
+    border: 0.5pt solid var(--border);
+    border-radius: 1.5mm;
+    overflow: hidden;
+  }
+  .ps-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2.5mm 4mm;
+    border-bottom: 0.3pt solid var(--border);
+  }
+  .ps-row:last-child { border-bottom: none; }
+  .ps-row .ps-label { font-size: 8pt; color: var(--muted); }
+  .ps-row .ps-value {
+    font-family: var(--font-display);
+    font-size: 9.5pt;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .ps-row.ps-total { background: var(--accent); }
+  .ps-row.ps-total .ps-label {
+    font-size: 8pt;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+  }
+  .ps-row.ps-total .ps-value {
+    font-size: 13pt;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .ps-row.ps-valid .ps-label { font-size: 7.5pt; }
+  .ps-row.ps-valid .ps-value { font-size: 8.5pt; color: var(--muted); }
+
+  /* ── TERMS ── */
+  .terms-section { margin-bottom: 6mm; }
+  .terms-text-block {
+    font-size: 8pt;
+    color: var(--muted);
+    line-height: 1.7;
+    white-space: pre-line;
+    padding: 4mm 5mm;
+    background: var(--light);
+    border-left: 2pt solid var(--primary);
+    border-radius: 0 1.5mm 1.5mm 0;
+  }
+  .notes-text-block {
+    font-size: 8.5pt;
+    color: var(--text);
+    line-height: 1.7;
+    white-space: pre-line;
+    padding: 4mm 5mm;
+    background: var(--light);
+    border-left: 2pt solid var(--primary);
+    border-radius: 0 1.5mm 1.5mm 0;
+    margin-bottom: 6mm;
+  }
+
+  /* ── SIGNATURE ── */
+  .signature-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10mm;
+    margin-top: 8mm;
+    margin-bottom: 8mm;
+  }
+  .sig-box { border-top: 0.5pt solid var(--border); padding-top: 2.5mm; }
+  .sig-box .sig-label {
+    font-size: 7pt;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .sig-box .sig-line {
+    height: 12mm;
+    border-bottom: 0.3pt dashed var(--border);
+    margin: 3mm 0 2mm;
+  }
+  .sig-box .sig-name { font-family: var(--font-display); font-size: 10pt; color: var(--text); }
+
+  /* ── UTILITIES ── */
+  .text-primary { color: var(--primary); }
+  .text-muted   { color: var(--muted); }
+  .text-center  { text-align: center; }
+  .mb-4  { margin-bottom: 4mm; }
+  .mb-6  { margin-bottom: 6mm; }
+  .mt-4  { margin-top: 4mm; }
+  .page-break { page-break-before: always; }
+  .no-break   { page-break-inside: avoid; }
+  .empty-notice {
+    background: var(--light);
+    border: 0.5pt dashed var(--border);
+    border-radius: 1.5mm;
+    padding: 6mm;
+    text-align: center;
+    color: var(--muted);
+    font-style: italic;
+    font-size: 9pt;
+  }
+</style>
+</head>
+<body>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     COVER PAGE
+═══════════════════════════════════════════════════════ -->
+<div class="cover">
+
+  <div class="cover-hero {% if not cover_image_url %}no-image{% endif %}"
+    {% if cover_image_url %}style="background-image: url('{{ cover_image_url }}');"{% endif %}
+  ></div>
+
+  <div class="cover-topbar">
+    <div class="cover-logo">
+      {% if logo_url %}
+        <img src="{{ logo_url }}" alt="{{ business_name }}">
+      {% else %}
+        <span class="cover-logo-text">{{ business_name }}</span>
+      {% endif %}
+    </div>
+    <div class="cover-ref">
+      Quotation<br>{{ reference_number }}
+    </div>
+  </div>
+
+  <div class="cover-bottom">
+    <div class="cover-label">Prepared exclusively for</div>
+    <div class="cover-client">{{ client_name }}</div>
+    <div class="cover-meta">
+      {% if event_name %}
+      <div class="cover-meta-item">
+        <span class="meta-label">Occasion</span>
+        <span class="meta-value">{{ event_name }}</span>
+      </div>
+      {% endif %}
+      {% if event_date_str %}
+      <div class="cover-meta-item">
+        <span class="meta-label">Event Date</span>
+        <span class="meta-value">{{ event_date_str }}</span>
+      </div>
+      {% endif %}
+      {% if guest_count_str %}
+      <div class="cover-meta-item">
+        <span class="meta-label">Guests</span>
+        <span class="meta-value">{{ guest_count_str }}</span>
+      </div>
+      {% endif %}
+      {% if event_location %}
+      <div class="cover-meta-item">
+        <span class="meta-label">Venue</span>
+        <span class="meta-value">{{ event_location }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="cover-stamp">
+    <div class="stamp-date">Prepared {{ generated_date_str }}</div>
+    <div class="stamp-qtn">{{ reference_number }}</div>
+  </div>
+
+</div><!-- /cover -->
+
+
+<!-- ═══════════════════════════════════════════════════════
+     PAGE 2 — CLIENT DETAILS + LINE ITEMS
+═══════════════════════════════════════════════════════ -->
+<div class="page">
+
+  <div class="page-header">
+    <div class="page-header-brand">{{ business_name }}</div>
+    <div class="page-header-right">
+      {{ reference_number }}
+      {% if event_date_str %}<br>{{ event_date_str }}{% endif %}
+    </div>
+  </div>
+
+  <!-- Client summary strip -->
+  <div class="client-strip no-break">
+    <div class="client-strip-cell">
+      <div class="cs-label">Client</div>
+      <div class="cs-value">{% if client_name %}{{ client_name }}{% else %}&mdash;{% endif %}</div>
+      {% if client_email %}<div class="cs-sub">{{ client_email }}</div>{% endif %}
+      {% if client_phone and not client_email %}<div class="cs-sub">{{ client_phone }}</div>{% endif %}
+    </div>
+    <div class="client-strip-cell">
+      <div class="cs-label">Event</div>
+      <div class="cs-value">{% if event_name %}{{ event_name }}{% else %}Event{% endif %}</div>
+      {% if event_date_str %}<div class="cs-sub">{{ event_date_str }}</div>{% endif %}
+    </div>
+    <div class="client-strip-cell">
+      <div class="cs-label">Guests{% if event_location %} &middot; Venue{% endif %}</div>
+      <div class="cs-value">
+        {% if guest_count_str %}{{ guest_count_str }} Pax{% else %}&mdash;{% endif %}
+      </div>
+      {% if event_location %}<div class="cs-sub">{{ event_location }}</div>{% endif %}
+    </div>
+  </div>
+
+  <!-- Line items -->
+  {% if line_item_sections %}
+  <div class="section">
+    <div class="section-title"><h2>Quotation Details</h2></div>
+    <table class="pricing-table">
+      <thead>
+        <tr>
+          <th style="width:50%">Description</th>
+          <th style="width:14%">Qty</th>
+          <th style="width:18%">Rate</th>
+          <th style="width:18%">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for section in line_item_sections %}
+        <tr class="cat-row">
+          <td colspan="4">{{ section.title }}</td>
+        </tr>
+        {% for item in section.items %}
+        <tr class="no-break">
+          <td>
+            <div class="item-name">{{ item.description }}</div>
+            {% if item.note %}<div class="item-note">{{ item.note }}</div>{% endif %}
+          </td>
+          <td class="item-qty">{{ item.quantity_str }}</td>
+          <td class="item-qty">&#8377;&nbsp;{{ item.unit_price_str }}</td>
+          <td class="item-amount">&#8377;&nbsp;{{ item.line_total_str }}</td>
+        </tr>
+        {% endfor %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-notice mb-6">No line items have been added to this quotation yet.</div>
+  {% endif %}
+
+  <!-- Pricing summary -->
+  <div class="pricing-summary-wrap no-break">
+    <div class="pricing-summary">
+      <div class="ps-row">
+        <span class="ps-label">Subtotal</span>
+        <span class="ps-value">&#8377;&nbsp;{{ subtotal_str }}</span>
+      </div>
+      <div class="ps-row">
+        <span class="ps-label">Tax ({{ tax_percent_str }}%)</span>
+        <span class="ps-value">&#8377;&nbsp;{{ tax_amount_str }}</span>
+      </div>
+      <div class="ps-row ps-total">
+        <span class="ps-label">Grand Total</span>
+        <span class="ps-value">&#8377;&nbsp;{{ grand_total_str }}</span>
+      </div>
+      {% if valid_until_str %}
+      <div class="ps-row ps-valid">
+        <span class="ps-label">Valid Until</span>
+        <span class="ps-value">{{ valid_until_str }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <div class="page-footer-left">
+      {{ business_name }}{% if brand_phone %} &middot; {{ brand_phone }}{% endif %}
+    </div>
+    <div class="page-footer-right">{{ reference_number }}</div>
+  </div>
+
+</div><!-- /page 2 -->
+
+
+<!-- ═══════════════════════════════════════════════════════
+     FINAL PAGE — NOTES, TERMS & SIGNATURE
+     (always rendered; notes/terms sections are conditional)
+═══════════════════════════════════════════════════════ -->
+<div class="page page-break">
+
+  <div class="page-header">
+    <div class="page-header-brand">{{ business_name }}</div>
+    <div class="page-header-right">{{ reference_number }}</div>
+  </div>
+
+  {% if show_notes %}
+  <div class="terms-section no-break">
+    <div class="section-title"><h2>Notes</h2></div>
+    {% if notes %}
+    <div class="notes-text-block">{{ notes }}</div>
+    {% endif %}
+    {% if special_notes %}
+    <ul style="list-style:none;padding:0;margin-top:{% if notes %}3mm{% else %}0{% endif %};">
+      {% for item in special_notes %}
+      <li style="display:flex;align-items:baseline;gap:2mm;font-size:8.5pt;color:var(--text);padding:1mm 0;">
+        <span style="color:var(--primary);font-size:9pt;flex-shrink:0;">&#8250;</span>
+        <span>{{ item }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if show_terms %}
+  <div class="terms-section no-break">
+    <div class="section-title"><h2>Terms &amp; Conditions</h2></div>
+    {% if terms_clauses %}
+    <ol style="list-style:none;counter-reset:terms;padding:0;">
+      {% for clause in terms_clauses %}
+      <li style="counter-increment:terms;display:flex;gap:3mm;font-size:8pt;color:var(--muted);line-height:1.6;padding:1.5mm 0;border-bottom:0.2pt solid var(--border);">
+        <span style="color:var(--primary);font-weight:600;font-size:8pt;flex-shrink:0;min-width:4mm;">{{ forloop.counter }}.</span>
+        <span>{{ clause }}</span>
+      </li>
+      {% endfor %}
+    </ol>
+    {% endif %}
+    {% if terms_text %}
+    <div class="terms-text-block" style="{% if terms_clauses %}margin-top:3mm;{% endif %}">{{ terms_text }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if not show_notes and not show_terms %}
+  <div class="terms-section no-break">
+    <div class="section-title"><h2>Terms &amp; Conditions</h2></div>
+    <div class="terms-text-block">1. 50% advance payment is required upon agreement; the remaining balance is due after the event.
+2. Agreed food and other items are non-refundable once delivered on-site.
+3. Any additional items requested beyond those listed shall be charged separately.
+4. Financial balances must be settled immediately following the event.
+5. The client is responsible for any damages caused to property or equipment during the event.
+6. If market prices of food items exceed the margin price at the time of the event, the difference shall be borne by the client.
+7. Rates are subject to revision if the final guest count falls below the confirmed number.</div>
+  </div>
+  {% endif %}
+
+  <!-- Signature block -->
+  <div class="signature-block no-break">
+    <div class="sig-box">
+      <div class="sig-label">Authorised by</div>
+      <div class="sig-line"></div>
+      <div class="sig-name">{{ business_name }}</div>
+      <div class="text-muted" style="font-size:7.5pt;margin-top:1mm;">
+        {% if brand_phone %}{{ brand_phone }}{% endif %}
+        {% if brand_phone and brand_email %} &middot; {% endif %}
+        {% if brand_email %}{{ brand_email }}{% endif %}
+      </div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-label">Client acceptance</div>
+      <div class="sig-line"></div>
+      <div class="sig-name">{{ client_name }}</div>
+      <div class="text-muted" style="font-size:7.5pt;margin-top:1mm;">To accept, sign &amp; return this document</div>
+    </div>
+  </div>
+
+  <!-- Brand footer strip -->
+  <div style="text-align:center;border-top:0.5pt solid var(--border);padding-top:4mm;margin-top:auto;">
+    <div style="font-family:var(--font-display);font-size:10pt;font-weight:600;color:var(--accent);letter-spacing:0.05em;">
+      {{ business_name }}
+    </div>
+    {% if tagline %}
+    <div style="font-size:7.5pt;color:var(--muted);margin-top:1mm;font-style:italic;">{{ tagline }}</div>
+    {% endif %}
+    <div style="font-size:7pt;color:var(--muted);margin-top:2mm;letter-spacing:0.08em;">
+      {% if brand_phone %}{{ brand_phone }}{% endif %}
+      {% if brand_phone and brand_email %} &middot; {% endif %}
+      {% if brand_email %}{{ brand_email }}{% endif %}
+    </div>
+    {% if footer_text %}
+    <div style="font-size:6.5pt;color:var(--muted);margin-top:2mm;">{{ footer_text }}</div>
+    {% endif %}
+    <div style="font-size:6.5pt;color:var(--border);margin-top:3mm;letter-spacing:0.1em;text-transform:uppercase;">
+      {% if valid_until_str %}This quotation is valid until {{ valid_until_str }} &middot; {% endif %}{{ reference_number }}
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <div class="page-footer-left">{{ business_name }}</div>
+    <div class="page-footer-right">Generated {{ generated_date_str }}</div>
+  </div>
+
+</div><!-- /final page -->
+
+
+</body>
+</html>

@@ -1,0 +1,29 @@
+{# Variables: data.company, data.tagline, data.since, data.phone, data.offices (list), data.bg_image_url, data.logo_url #}
+<div style="width:794px;min-height:1123px;margin:0 auto;box-sizing:border-box;background:#fff;color:#1a4a2e;font-family:Georgia,'Times New Roman',serif;position:relative;overflow:hidden;">
+  <div style="width:100%;height:674px;background:#1a4a2e url('{{ data.bg_image_url|default:'' }}') center/cover no-repeat;position:relative;">
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(26,74,46,0.15) 0%,rgba(26,74,46,0.55) 100%);"></div>
+  </div>
+  <div style="padding:28px 40px 0;text-align:center;">
+    {% if data.logo_url %}
+    <img src="{{ data.logo_url }}" alt="" style="max-height:56px;margin-bottom:16px;display:inline-block;vertical-align:middle;"/>
+    {% endif %}
+    <h1 style="margin:0 0 8px;font-size:28px;font-weight:700;color:#c8a84b;letter-spacing:0.04em;">{{ data.company|default:'Company name' }}</h1>
+    <p style="margin:0 0 16px;font-size:14px;color:#1a4a2e;line-height:1.45;">{{ data.tagline|default:'Crafted catering for unforgettable moments.' }}</p>
+    <p style="margin:0;font-size:12px;font-weight:700;color:#c8a84b;letter-spacing:0.2em;">SINCE {{ data.since|default:'2013' }}</p>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#c8a84b;color:#1a4a2e;padding:14px 28px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;font-family:system-ui,-apple-system,sans-serif;font-size:11px;">
+    <div style="flex:1;min-width:140px;">
+      <strong style="display:block;margin-bottom:4px;">Phone</strong>
+      <span>{{ data.phone|default:'—' }}</span>
+    </div>
+    <div style="flex:2;min-width:200px;">
+      <strong style="display:block;margin-bottom:4px;">Offices</strong>
+      {% if data.offices %}
+        {% for line in data.offices %}<span style="display:block;">{{ line }}</span>{% endfor %}
+      {% else %}
+        <span>—</span>
+      {% endif %}
+    </div>
+    <div style="width:72px;height:72px;background:rgba(26,74,46,0.12);border:2px dashed #1a4a2e;display:flex;align-items:center;justify-content:center;font-size:9px;text-align:center;line-height:1.2;">QR</div>
+  </div>
+</div>

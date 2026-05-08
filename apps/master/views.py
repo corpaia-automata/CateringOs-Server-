@@ -15,6 +15,7 @@ from shared.permissions import IsTenantScopedJWT
 
 from .filters import DishFilter, IngredientFilter
 from .models import Category, Dish, DishCategory, DishRecipe, Ingredient
+from .recipe_unit_cost import unit_cost_snapshot_for_recipe_line
 from .serializers import (
     CategorySerializer,
     DishCategorySerializer,
@@ -167,9 +168,17 @@ class DishRecipeViewSet(viewsets.GenericViewSet):
 
         # Coerce batch_size to Decimal to avoid float → DecimalField coercion issues.
         try:
-            new_batch_size = Decimal(str(new_batch_size)) if new_batch_size else Decimal('1')
+            new_batch_size = Decimal('1') if new_batch_size in (None, '') else Decimal(str(new_batch_size))
         except Exception:
             new_batch_size = Decimal('1')
+
+        if lines_data and new_batch_size <= Decimal('1'):
+            raise drf_serializers.ValidationError({
+                'batch_size': (
+                    'Batch size looks wrong for a recipe with ingredients. '
+                    'Set the actual recipe batch size, for example 10 for a 10 KG recipe.'
+                )
+            })
 
         # Reject duplicates explicitly — do not silently drop them.
         seen = set()
@@ -226,7 +235,10 @@ class DishRecipeViewSet(viewsets.GenericViewSet):
                             dish=dish,
                             tenant_id=request.tenant_id,
                             # bulk_create skips save(), so snapshot must be set explicitly
-                            unit_cost_snapshot=ing.unit_cost if ing else Decimal('0'),
+                            unit_cost_snapshot=(
+                                unit_cost_snapshot_for_recipe_line(ing, str(item.get('unit', '')))
+                                if ing else Decimal('0')
+                            ),
                             **item,
                         )
                     )
@@ -289,7 +301,15 @@ class DishRecipeViewSet(viewsets.GenericViewSet):
 
         # Normalise header
         def _norm(v):
-            return str(v or '').strip().lower().replace(' ', '_').replace('-', '_')
+            return (
+                str(v or '')
+                .strip()
+                .lower()
+                .replace('.', '')
+                .replace('/', '_')
+                .replace(' ', '_')
+                .replace('-', '_')
+            )
 
         header = [_norm(h) for h in rows[0]]
 
@@ -301,7 +321,7 @@ class DishRecipeViewSet(viewsets.GenericViewSet):
 
         name_idx = _col('ingredient_name', 'name', 'ingredient')
         qty_idx  = _col('quantity', 'qty')
-        unit_idx = _col('unit')
+        unit_idx = _col('unit', 'units', 'uom', 'u_o_m', 'unit_of_measure', 'measure', 'measurement')
 
         if name_idx is None or qty_idx is None:
             return Response(
@@ -309,18 +329,35 @@ class DishRecipeViewSet(viewsets.GenericViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        VALID_UOM = {'kg', 'g', 'litre', 'ml', 'piece', 'packet', 'box', 'dozen'}
+        VALID_UOM = {'kg', 'g', 'litre', 'ml', 'piece', 'packet', 'box', 'dozen', 'unit', 'peeled'}
 
         def _uom(raw):
-            v = str(raw or '').strip().lower()
-            alias = {'liter': 'litre', 'ltr': 'litre', 'pcs': 'piece', 'pieces': 'piece',
-                     'nos': 'piece', 'no': 'piece', 'grams': 'g', 'gram': 'g',
-                     'pack': 'packet', 'packets': 'packet', 'ml': 'ml',
-                     'milliliter': 'ml', 'millilitre': 'ml'}
+            v = (
+                str(raw or '')
+                .strip()
+                .lower()
+                .replace('.', '')
+                .replace('/', '')
+                .replace(' ', '')
+                .replace('-', '')
+            )
+            alias = {
+                'kilogram': 'kg', 'kilograms': 'kg', 'kgs': 'kg',
+                'grams': 'g', 'gram': 'g', 'gm': 'g', 'gms': 'g',
+                'liter': 'litre', 'liters': 'litre', 'litres': 'litre', 'ltr': 'litre', 'ltrs': 'litre', 'lt': 'litre', 'l': 'litre',
+                'milliliter': 'ml', 'millilitre': 'ml', 'milliliters': 'ml', 'millilitres': 'ml',
+                'pcs': 'piece', 'pc': 'piece', 'pieces': 'piece', 'nos': 'piece', 'no': 'piece', 'number': 'piece', 'numbers': 'piece',
+                'pack': 'packet', 'packs': 'packet', 'packets': 'packet', 'pkt': 'packet', 'pkts': 'packet',
+                'boxes': 'box', 'bx': 'box',
+                'units': 'unit', 'unit': 'unit',
+                'dozens': 'dozen', 'dz': 'dozen',
+                'peeled': 'peeled',
+            }
             v = alias.get(v, v)
-            return v if v in VALID_UOM else 'kg'
+            return v if v in VALID_UOM else None
 
         parsed = []
+        invalid_units = []
         seen_names: set[str] = set()
         for row in rows[1:]:
             raw_name = str(row[name_idx] or '').strip()
@@ -341,6 +378,10 @@ class DishRecipeViewSet(viewsets.GenericViewSet):
             except Exception:
                 continue
             raw_unit = row[unit_idx] if unit_idx is not None else 'kg'
+            unit = _uom(raw_unit)
+            if unit is None:
+                invalid_units.append(f'{raw_name}: {raw_unit}')
+                continue
             # Deduplicate by name (case-insensitive) — last row wins
             key = raw_name.lower()
             if key in seen_names:
@@ -348,14 +389,37 @@ class DishRecipeViewSet(viewsets.GenericViewSet):
                 for entry in parsed:
                     if entry['name'].lower() == key:
                         entry['qty'] = qty
-                        entry['unit'] = _uom(raw_unit)
+                        entry['unit'] = unit
                         break
             else:
                 seen_names.add(key)
-                parsed.append({'name': raw_name, 'qty': qty, 'unit': _uom(raw_unit)})
+                parsed.append({'name': raw_name, 'qty': qty, 'unit': unit})
+
+        if invalid_units:
+            return Response(
+                {
+                    'detail': (
+                        'Unsupported unit values in recipe upload: '
+                        f'{", ".join(invalid_units[:10])}. '
+                        'Use kg, g, litre/LTR, ml, piece/NOS, packet, box, dozen, unit, or peeled.'
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if not parsed:
             return Response({'detail': 'No valid rows found in file.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if dish.batch_size is None or dish.batch_size <= Decimal('1'):
+            return Response(
+                {
+                    'batch_size': (
+                        'Batch size looks wrong for a recipe with ingredients. '
+                        'Set the actual recipe batch size before uploading recipe lines.'
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             with transaction.atomic():
@@ -396,7 +460,9 @@ class DishRecipeViewSet(viewsets.GenericViewSet):
                         ingredient=r['ingredient'],
                         qty_per_unit=r['qty_per_unit'],
                         unit=r['unit'],
-                        unit_cost_snapshot=r['ingredient'].unit_cost,
+                        unit_cost_snapshot=unit_cost_snapshot_for_recipe_line(
+                            r['ingredient'], str(r['unit'])
+                        ),
                     )
                     for r in resolved
                 ]

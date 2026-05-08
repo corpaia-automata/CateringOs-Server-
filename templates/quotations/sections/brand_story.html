@@ -1,0 +1,18 @@
+{# Variables: data.title, data.hero_image_url (optional), data.body_paragraphs (list of strings) #}
+<div style="width:794px;min-height:1123px;margin:0 auto;box-sizing:border-box;background:#fff;color:#1a4a2e;font-family:Georgia,'Times New Roman',serif;position:relative;display:flex;flex-direction:column;">
+  <div style="flex:0 0 38%;min-height:320px;background:#1a4a2e url('{{ data.hero_image_url|default:'' }}') center/cover no-repeat;position:relative;">
+    <div style="position:absolute;inset:0;background:rgba(26,74,46,0.82);display:flex;align-items:center;justify-content:center;padding:32px;">
+      <h2 style="margin:0;font-size:32px;font-weight:700;color:#fff;text-align:center;line-height:1.15;text-shadow:0 2px 12px rgba(0,0,0,0.35);">{{ data.title|default:'Our story' }}</h2>
+    </div>
+  </div>
+  <div style="flex:1;padding:36px 48px 100px;background:#fff;">
+    {% if data.body_paragraphs %}
+      {% for p in data.body_paragraphs %}
+      <p style="margin:0 0 16px;font-size:13px;line-height:1.65;color:#2d3748;">{{ p }}</p>
+      {% endfor %}
+    {% else %}
+      <p style="margin:0;font-size:13px;line-height:1.65;color:#2d3748;">{{ data.body|default:'We believe great food brings people together. Every menu is designed with care, seasonal ingredients, and respect for tradition.' }}</p>
+    {% endif %}
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;height:10px;background:#c8a84b;"></div>
+</div>

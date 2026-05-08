@@ -76,8 +76,8 @@ class AggregationTest(TestCase):
         )
 
     def test_salt_aggregates_across_dishes(self):
-        # Creating menu items freezes snapshots in EventMenuItem.save()
-        # and fires post_save → CalculationEngine.run() via signal.
+        # Creating menu items freezes snapshots in EventMenuItem.save().
+        # The engine can still rebuild EventIngredient rows from those snapshots.
         EventMenuItem.objects.create(
             event=self.event,
             dish=self.biryani,

@@ -14,6 +14,15 @@ from .serializers import (
 )
 
 
+def subscription_payload(tenant):
+    return {
+        'subscription_status': tenant.subscription_status,
+        'trial_days_left': tenant.trial_days_left,
+        'trial_ends_at': tenant.trial_ends_at.isoformat() if tenant.trial_ends_at else None,
+        'has_active_access': tenant.has_active_access,
+    }
+
+
 class RegisterView(APIView):
     permission_classes = (AllowAny,)
 
@@ -22,16 +31,77 @@ class RegisterView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         refresh = RefreshToken.for_user(user)
-        return Response({
+        data = {
             'user': UserSerializer(user).data,
             'access': str(refresh.access_token),
             'refresh': str(refresh),
-        }, status=status.HTTP_201_CREATED)
+        }
+        if user.tenant_id:
+            data['subscription'] = subscription_payload(user.tenant)
+        return Response(data, status=status.HTTP_201_CREATED)
 
 
 class LoginView(TokenObtainPairView):
     permission_classes = (AllowAny,)
     serializer_class = CustomTokenObtainPairSerializer
+
+
+class UnifiedLoginView(APIView):
+    """
+    POST /api/auth/login/
+    Single-request login that resolves tenant from user email.
+    """
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        email = (request.data.get('email') or '').strip().lower()
+        password = request.data.get('password') or ''
+
+        if not email or not password:
+            return Response(
+                {'error': 'Email and password are required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = User.objects.select_related('tenant').filter(email__iexact=email).first()
+        if not user:
+            return Response(
+                {'error': 'No account found for this email.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not user.tenant_id:
+            return Response(
+                {'error': 'Tenant is not configured for this account.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not user.check_password(password):
+            return Response(
+                {'error': 'Invalid credentials.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        refresh = RefreshToken.for_user(user)
+        refresh['tenant_id'] = str(user.tenant_id)
+        refresh['tenant_slug'] = user.tenant.slug
+        refresh['role'] = user.role
+        refresh['email'] = user.email
+
+        return Response(
+            {
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'tenant_slug': user.tenant.slug,
+                'user': {
+                    'id': str(user.id),
+                    'email': user.email,
+                    'name': user.full_name,
+                },
+                'subscription': subscription_payload(user.tenant),
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class LogoutView(APIView):
@@ -48,13 +118,21 @@ class LogoutView(APIView):
 class MeView(APIView):
 
     def get(self, request):
-        return Response(UserSerializer(request.user).data)
+        data = UserSerializer(request.user).data
+        data['subscription'] = subscription_payload(request.user.tenant)
+        return Response(data)
 
     def patch(self, request):
         serializer = UserSerializer(request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class BillingStatusView(APIView):
+
+    def get(self, request):
+        return Response(subscription_payload(request.user.tenant))
 
 
 class FindTenantView(APIView):
@@ -113,4 +191,5 @@ class TenantLoginView(APIView):
                 'slug': tenant['slug'],
                 'config': tenant['config'],
             },
+            'subscription': subscription_payload(user.tenant),
         })

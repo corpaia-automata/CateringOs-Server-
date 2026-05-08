@@ -3,7 +3,7 @@
 ## Stack
 - Python 3.12 · Django 5.0.3 · Django REST Framework 3.15.1
 - PostgreSQL 16 · JWT via djangorestframework-simplejwt
-- WeasyPrint (PDF) · openpyxl (Excel) · django-filter
+- xhtml2pdf (PDF where used) · openpyxl (Excel) · django-filter
 
 ## Project Structure
 - config/ → Django project package (settings/, urls.py, wsgi.py)

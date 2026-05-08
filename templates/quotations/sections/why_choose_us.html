@@ -1,0 +1,49 @@
+{# Variables: data.heading, data.points — each { title, caption, photos: [urls] } #}
+<div style="width:794px;min-height:1123px;margin:0 auto;box-sizing:border-box;background:#fafaf8;color:#1a4a2e;font-family:Georgia,'Times New Roman',serif;padding:40px 36px 56px;position:relative;">
+  <div style="display:inline-block;background:#c8a84b;color:#1a4a2e;padding:10px 28px;border-radius:999px;font-size:13px;font-weight:700;letter-spacing:0.08em;margin-bottom:32px;">
+    {{ data.heading|default:'WHY CHOOSE US' }}
+  </div>
+  {% if data.points %}
+    {% for pt in data.points %}
+    <section style="margin-bottom:36px;">
+      <h3 style="margin:0 0 10px;font-size:17px;font-weight:700;color:#1a4a2e;border-bottom:2px solid #c8a84b;padding-bottom:6px;display:inline-block;">{{ pt.title }}</h3>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+        {% if pt.photos %}
+          {% for url in pt.photos %}
+          <div style="flex:1;min-width:120px;max-width:160px;height:100px;background:#1a4a2e url('{{ url }}') center/cover no-repeat;border-radius:4px;border:1px solid #c8a84b;"></div>
+          {% endfor %}
+        {% else %}
+          <div style="flex:1;min-width:120px;height:100px;background:linear-gradient(135deg,#1a4a2e,#2d6a47);border-radius:4px;border:1px solid #c8a84b;"></div>
+        {% endif %}
+      </div>
+      <p style="margin:12px 0 0;font-size:12px;line-height:1.55;color:#4a5568;">{{ pt.caption }}</p>
+    </section>
+    {% endfor %}
+  {% else %}
+    <section style="margin-bottom:36px;">
+      <h3 style="margin:0 0 10px;font-size:17px;font-weight:700;color:#1a4a2e;border-bottom:2px solid #c8a84b;padding-bottom:6px;display:inline-block;">We are Creative</h3>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <div style="flex:1;height:100px;background:linear-gradient(135deg,#1a4a2e,#2d6a47);border-radius:4px;border:1px solid #c8a84b;"></div>
+        <div style="flex:1;height:100px;background:linear-gradient(135deg,#2d6a47,#1a4a2e);border-radius:4px;border:1px solid #c8a84b;"></div>
+      </div>
+      <p style="margin:12px 0 0;font-size:12px;line-height:1.55;color:#4a5568;">Menus tailored to your theme, culture, and palate.</p>
+    </section>
+    <section style="margin-bottom:36px;">
+      <h3 style="margin:0 0 10px;font-size:17px;font-weight:700;color:#1a4a2e;border-bottom:2px solid #c8a84b;padding-bottom:6px;display:inline-block;">We are Punctual</h3>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <div style="flex:1;height:100px;background:linear-gradient(135deg,#1a4a2e,#2d6a47);border-radius:4px;border:1px solid #c8a84b;"></div>
+        <div style="flex:1;height:100px;background:linear-gradient(135deg,#2d6a47,#1a4a2e);border-radius:4px;border:1px solid #c8a84b;"></div>
+      </div>
+      <p style="margin:12px 0 0;font-size:12px;line-height:1.55;color:#4a5568;">Kitchen timelines aligned with your event schedule.</p>
+    </section>
+    <section style="margin-bottom:36px;">
+      <h3 style="margin:0 0 10px;font-size:17px;font-weight:700;color:#1a4a2e;border-bottom:2px solid #c8a84b;padding-bottom:6px;display:inline-block;">We have Magic</h3>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <div style="flex:1;height:100px;background:linear-gradient(135deg,#1a4a2e,#2d6a47);border-radius:4px;border:1px solid #c8a84b;"></div>
+        <div style="flex:1;height:100px;background:linear-gradient(135deg,#2d6a47,#1a4a2e);border-radius:4px;border:1px solid #c8a84b;"></div>
+      </div>
+      <p style="margin:12px 0 0;font-size:12px;line-height:1.55;color:#4a5568;">Warm hospitality and presentation guests remember.</p>
+    </section>
+  {% endif %}
+  <div style="position:absolute;left:0;right:0;bottom:0;height:10px;background:#c8a84b;"></div>
+</div>

@@ -1,5 +1,5 @@
-from django.http import Http404, HttpResponse
 from django.db import transaction
+from django.http import Http404, HttpResponse
 from django.utils import timezone
 import logging
 from django_filters.rest_framework import DjangoFilterBackend
@@ -8,6 +8,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.events.models import Event
+from apps.quotations.models import Quotation
 from shared.exports.excel_service import create_workbook, workbook_to_bytes
 from shared.permissions import IsTenantScopedJWT
 
@@ -19,7 +21,13 @@ from .serializers import (
     PreEstimateDetailSerializer,
     PreEstimateItemCreateSerializer,
 )
-from .services import PreEstimateService, export_pre_estimate_json
+from .services import (
+    PreEstimateService,
+    apply_quotation_pricing_to_event,
+    export_pre_estimate_json,
+    merge_quotation_snapshots_into_event_after_convert,
+    seed_event_execution_from_quotation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +37,16 @@ class InquiryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsTenantScopedJWT]
     filter_backends  = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class  = InquiryFilter
-    search_fields    = ['customer_name', 'contact_number']
+    search_fields    = ['customer_name', 'contact_number', 'venue']
     ordering_fields  = ['created_at', 'tentative_date']
     ordering         = ['-created_at']
 
     def get_queryset(self):
-        return Inquiry.objects.filter(tenant_id=self.request.tenant_id)
+        return (
+            Inquiry.objects
+            .filter(tenant_id=self.request.tenant_id)
+            .select_related('converted_event')
+        )
 
     def perform_create(self, serializer):
         serializer.save(tenant_id=self.request.tenant_id)
@@ -46,92 +58,69 @@ class InquiryViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='convert')
     def convert(self, request, pk=None, *args, **kwargs):
-        from apps.events.models import Event
-        from apps.quotations.models import Quotation
-
         inquiry = self.get_object()
-        request_payload = request.data if isinstance(request.data, dict) else {}
-        logger.info(
-            'convert_inquiry called: inquiry_id=%s tenant_id=%s user_id=%s payload=%s',
-            inquiry.id, inquiry.tenant_id, getattr(request.user, 'id', None), request_payload,
-        )
 
-        try:
-            latest_quotation = (
-                Quotation.objects
-                .filter(tenant_id=request.tenant_id, inquiry_id=inquiry.id)
+        if inquiry.status == Inquiry.Status.LOST:
+            return Response(
+                {'detail': 'Cannot convert a lost lead.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            # Lock inquiry row only. select_related(converted_event) + select_for_update
+            # produces an outer join; PostgreSQL rejects FOR UPDATE on the nullable side.
+            locked = Inquiry.objects.select_for_update(of=('self',)).get(
+                pk=inquiry.pk,
+                tenant_id=request.tenant_id,
+            )
+
+            if locked.converted_event_id:
+                eid = str(locked.converted_event_id)
+                return Response({'id': eid, 'event_id': eid}, status=status.HTTP_200_OK)
+
+            event = Event(
+                tenant_id=request.tenant_id,
+                inquiry=locked,
+                customer_name=locked.customer_name,
+                contact_number=locked.contact_number or '',
+                event_type=locked.event_type or '',
+                event_date=locked.tentative_date,
+                venue=locked.venue or '',
+                guest_count=max(1, locked.guest_count or 1),
+                service_type=Event.ServiceType.OTHER,
+                status=Event.Status.CONFIRMED,
+                total_amount=locked.estimated_budget,
+                notes=locked.notes or '',
+            )
+            event.save()
+
+            latest_q = (
+                Quotation.objects.filter(
+                    inquiry_id=locked.pk,
+                    tenant_id=request.tenant_id,
+                )
                 .order_by('-version_number', '-created_at')
                 .first()
             )
-            logger.info(
-                'convert_inquiry related objects: inquiry_status=%s converted_event_id=%s quotation_id=%s quotation_locked=%s quotation_status=%s',
-                inquiry.status,
-                inquiry.converted_event_id,
-                getattr(latest_quotation, 'id', None),
-                getattr(latest_quotation, 'is_locked', None),
-                getattr(latest_quotation, 'status', None),
-            )
+            if latest_q and not Event.all_objects.filter(quotation_id=latest_q.pk).exists():
+                event.quotation = latest_q
+                event.save(update_fields=['quotation', 'updated_at'])
+                # Snapshot line-items from quotation JSON; reconcile totals afterward.
+                seed_user = getattr(request, 'user', None)
+                seed_actor = seed_user if getattr(seed_user, 'is_authenticated', False) else None
+                event = seed_event_execution_from_quotation(event, latest_q, seed_actor)
+                event = apply_quotation_pricing_to_event(event, latest_q, seed_actor)
+                event = merge_quotation_snapshots_into_event_after_convert(event, latest_q, seed_actor)
 
-            # Idempotent behavior: if this inquiry is already converted, return existing event.
-            if inquiry.converted_event_id:
-                return Response(
-                    {'event_id': str(inquiry.converted_event_id), 'success': True, 'already_converted': True},
-                    status=status.HTTP_200_OK,
-                )
+            now = timezone.now()
+            locked.converted_event = event
+            locked.converted_at = now
+            if locked.status != Inquiry.Status.SUCCESS:
+                locked.status = Inquiry.Status.SUCCESS
+            locked.save(update_fields=['converted_event', 'converted_at', 'status', 'updated_at'])
 
-            if not latest_quotation:
-                return Response({'error': 'Quotation not found'}, status=status.HTTP_400_BAD_REQUEST)
-            if not latest_quotation.is_locked:
-                return Response({'error': 'Quotation not finalized'}, status=status.HTTP_400_BAD_REQUEST)
-
-            if not inquiry.customer_name:
-                return Response({'error': 'Customer name is required for conversion'}, status=status.HTTP_400_BAD_REQUEST)
-            if not inquiry.event_type:
-                return Response({'error': 'Event type is required for conversion'}, status=status.HTTP_400_BAD_REQUEST)
-
-            guest_count = int(inquiry.guest_count or 0)
-            if guest_count <= 0:
-                return Response({'error': 'Guest count must be greater than 0'}, status=status.HTTP_400_BAD_REQUEST)
-
-            # Resolve service type from quotation menu_services if possible.
-            raw_service_name = ''
-            if isinstance(latest_quotation.menu_services, list) and latest_quotation.menu_services:
-                raw_service_name = str((latest_quotation.menu_services[0] or {}).get('name') or '').strip().upper().replace(' ', '_')
-            service_type = raw_service_name if raw_service_name in Event.ServiceType.values else Event.ServiceType.OTHER
-
-            # Keep event creation inside a transaction (event code generation uses DB locking).
-            with transaction.atomic():
-                event = Event.objects.create(
-                    tenant_id=inquiry.tenant_id,
-                    inquiry=inquiry,
-                    quotation=latest_quotation,
-                    customer_name=inquiry.customer_name,
-                    contact_number=inquiry.contact_number or '',
-                    event_type=inquiry.event_type,
-                    event_date=inquiry.tentative_date,
-                    venue=inquiry.notes or '',
-                    guest_count=guest_count,
-                    service_type=service_type,
-                    total_amount=latest_quotation.final_selling_price,
-                    advance_amount=latest_quotation.advance_amount,
-                    notes=latest_quotation.payment_terms or '',
-                )
-
-                inquiry.converted_event = event
-                inquiry.converted_at = timezone.now()
-                inquiry.save(update_fields=['converted_event', 'converted_at', 'updated_at'])
-
-            logger.info(
-                'convert_inquiry success: inquiry_id=%s event_id=%s quotation_id=%s',
-                inquiry.id, event.id, latest_quotation.id,
-            )
-            return Response({'event_id': str(event.id), 'success': True}, status=status.HTTP_200_OK)
-        except Exception as exc:
-            logger.exception(
-                'convert_inquiry failed: inquiry_id=%s tenant_id=%s error=%s',
-                inquiry.id, inquiry.tenant_id, str(exc),
-            )
-            return Response({'error': str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        eid = str(event.id)
+        return Response({'id': eid, 'event_id': eid}, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['get'], url_path='export')
     def export(self, request):
@@ -144,7 +133,7 @@ class InquiryViewSet(viewsets.ModelViewSet):
 
         headers = [
             'Customer Name', 'Contact Number', 'Source Channel',
-            'Event Type', 'Tentative Date', 'Guests',
+            'Event Type', 'Tentative Date', 'Venue', 'Guests',
             'Estimated Budget', 'Status', 'Notes', 'Created At',
         ]
         ws.append(headers)
@@ -156,6 +145,7 @@ class InquiryViewSet(viewsets.ModelViewSet):
                 inquiry.get_source_channel_display(),
                 inquiry.event_type or '',
                 str(inquiry.tentative_date) if inquiry.tentative_date else '',
+                inquiry.venue or '',
                 inquiry.guest_count,
                 float(inquiry.estimated_budget) if inquiry.estimated_budget else '',
                 inquiry.get_status_display(),

@@ -1,14 +1,7 @@
 FROM python:3.11-slim
 
-# System dependencies required by WeasyPrint (PDF rendering) and psycopg2
+# Build deps for psycopg2; PDF uses xhtml2pdf (no GTK/Cairo stack).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpango-1.0-0 \
-    libpangoft2-1.0-0 \
-    libharfbuzz0b \
-    libcairo2 \
-    libgdk-pixbuf2.0-0 \
-    libffi-dev \
-    shared-mime-info \
     libpq-dev \
     gcc \
     && rm -rf /var/lib/apt/lists/*

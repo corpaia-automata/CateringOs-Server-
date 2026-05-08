@@ -3,9 +3,9 @@ from django.db import models
 
 class EventIngredient(models.Model):
     """
-    Computed output table — written ONLY by CalculationEngine.run().
+    Computed output table refreshed by event recalculation.
     Does NOT inherit BaseMixin (no UUID PK, no soft delete, no timestamps).
-    calculated_at is refreshed on every engine run via auto_now=True.
+    calculated_at is refreshed on every recalculation via auto_now=True.
     """
 
     tenant = models.ForeignKey(

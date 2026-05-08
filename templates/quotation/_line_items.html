@@ -1,0 +1,29 @@
+{% for section in line_item_sections %}
+  <section class="line-section">
+    <h2 class="line-section__title">{{ section.title }}</h2>
+    <table class="line-table">
+      <thead>
+        <tr>
+          <th class="line-table__th line-table__th--desc">Description</th>
+          <th class="line-table__th line-table__th--num">Qty</th>
+          <th class="line-table__th line-table__th--num">Unit</th>
+          <th class="line-table__th line-table__th--num">Total</th>
+          <th class="line-table__th line-table__th--note">Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in section.rows %}
+          <tr>
+            <td class="line-table__td">{{ row.description }}</td>
+            <td class="line-table__td line-table__td--num">{{ row.quantity_str }}</td>
+            <td class="line-table__td line-table__td--num">{{ row.unit_price_str }}</td>
+            <td class="line-table__td line-table__td--num">{{ row.line_total_str }}</td>
+            <td class="line-table__td line-table__td--note">{{ row.note }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% empty %}
+  <p class="muted">No line items.</p>
+{% endfor %}

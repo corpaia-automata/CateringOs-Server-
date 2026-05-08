@@ -1,0 +1,375 @@
+/* Lightweight ops dashboard — works with default Django admin + admin/css/dashboard.css */
+
+/*
+ * Django core (base.css) sets `.dashboard #content { width: 600px; }`, which leaves most
+ * of the viewport empty on wide screens. Override so KPIs, alerts, and grids use the layout.
+ */
+body.dashboard #content {
+  width: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.ops-dashboard {
+  margin: 0 0 1.5rem;
+}
+
+.ops-dashboard__scope {
+  font-size: 0.8rem;
+  color: var(--body-quiet-color, #6b7280);
+  margin: 0 0 0.75rem;
+}
+
+.ops-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 1.25rem;
+}
+
+.ops-kpi-card {
+  border: 1px solid var(--hairline-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: var(--body-bg, #fff);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.ops-kpi-card__icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+
+.ops-kpi-card__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--body-quiet-color, #6b7280);
+  margin: 0 0 4px;
+}
+
+.ops-kpi-card__value {
+  font-size: 1.45rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.15;
+  color: var(--body-fg, #111827);
+}
+
+.ops-kpi-card__hint {
+  font-size: 0.75rem;
+  color: var(--body-quiet-color, #9ca3af);
+  margin: 6px 0 0;
+}
+
+.ops-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 1.25rem;
+}
+
+.ops-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--hairline-color, #d1d5db);
+  background: var(--button-bg, #f9fafb);
+  color: var(--body-fg, #111827);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.ops-button:hover {
+  border-color: var(--link-fg, #2563eb);
+  color: var(--link-fg, #2563eb);
+}
+
+.ops-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 1.5rem;
+}
+
+.ops-panel {
+  border: 1px solid var(--hairline-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+  background: var(--body-bg, #fff);
+}
+
+.ops-panel__head {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--hairline-color, #e5e7eb);
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin: 0;
+  background: var(--darkened-bg, #f3f4f6);
+}
+
+.ops-panel__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ops-panel__item {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--hairline-color, #f3f4f6);
+  font-size: 0.85rem;
+}
+
+.ops-panel__item:last-child {
+  border-bottom: none;
+}
+
+.ops-panel__title {
+  font-weight: 600;
+  margin: 0 0 2px;
+}
+
+.ops-panel__title a {
+  text-decoration: none;
+}
+
+.ops-panel__title a:hover {
+  text-decoration: underline;
+}
+
+.ops-panel__meta {
+  font-size: 0.78rem;
+  color: var(--body-quiet-color, #6b7280);
+  margin: 0;
+}
+
+.ops-empty {
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  color: var(--body-quiet-color, #6b7280);
+  margin: 0;
+}
+
+/* Section layout */
+.ops-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 1.25rem 0 0.5rem;
+  color: var(--body-fg, #111827);
+}
+
+.ops-panels--wide {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+.ops-panel__pad {
+  padding: 12px 14px 14px;
+}
+
+.ops-subhead {
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin: 1rem 0 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--body-quiet-color, #6b7280);
+}
+
+.ops-metric-line {
+  font-size: 0.9rem;
+  margin: 0.35rem 0;
+}
+
+.ops-metric-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.ops-quiet {
+  font-size: 0.78rem;
+  color: var(--body-quiet-color, #6b7280);
+  margin: 0.5rem 0 0;
+  line-height: 1.4;
+}
+
+.ops-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-top: 0.35rem;
+}
+
+.ops-table td {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--hairline-color, #f3f4f6);
+}
+
+.ops-num {
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Alerts */
+.ops-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 1.25rem;
+}
+
+.ops-alert {
+  border-radius: 10px;
+  border: 2px solid var(--hairline-color, #e5e7eb);
+  padding: 12px 14px;
+  background: var(--body-bg, #fff);
+}
+
+.ops-alert--danger {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.ops-alert--warning {
+  border-color: #ea580c;
+  background: #fff7ed;
+}
+
+.ops-alert__title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+  color: #991b1b;
+}
+
+.ops-alert--warning .ops-alert__title {
+  color: #9a3412;
+}
+
+.ops-alert__count {
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.ops-alert__rows {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.ops-alert__meta {
+  color: var(--body-quiet-color, #64748b);
+}
+
+.ops-alert__more {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+}
+
+/* Load */
+.ops-load {
+  margin: 1rem 0 0.75rem;
+}
+
+.ops-load__chips,
+.ops-busy-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ops-busy-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.ops-chip {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--darkened-bg, #f3f4f6);
+  color: var(--body-fg, #1f2937);
+}
+
+.ops-chip--warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ops-actions__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ops-actions--grouped {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.ops-actions__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--body-quiet-color, #6b7280);
+  margin-right: 6px;
+  width: 100%;
+}
+
+.ops-button--create {
+  background: var(--darkened-bg, #ecfdf5);
+  border-color: #059669;
+}
+
+.ops-button--fix {
+  background: var(--darkened-bg, #fefce8);
+  border-color: #eab308;
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ops-kpi-card,
+  .ops-panel {
+    box-shadow: none;
+  }
+
+  .ops-alert--danger {
+    background: rgba(127, 29, 29, 0.25);
+    border-color: #fca5a5;
+  }
+
+  .ops-alert--warning {
+    background: rgba(124, 45, 18, 0.3);
+    border-color: #fdba74;
+  }
+
+  .ops-chip--warn {
+    background: rgba(146, 64, 14, 0.4);
+    color: #fcd34d;
+  }
+
+  .ops-alert__title,
+  .ops-alert--warning .ops-alert__title {
+    color: #fecaca;
+  }
+
+  .ops-alert--warning .ops-alert__title {
+    color: #fed7aa;
+  }
+}

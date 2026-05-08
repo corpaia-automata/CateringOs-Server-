@@ -1,0 +1,202 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'admin/css/dashboard.css' %}"><link rel="stylesheet" href="{% static 'admin/css/ops_dashboard.css' %}">{% endblock %}
+
+{% block coltype %}colMS{% endblock %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block nav-breadcrumbs %}{% endblock %}
+
+{% block nav-sidebar %}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <section class="ops-dashboard" aria-label="{% translate 'Operations overview' %}">
+    <p class="ops-dashboard__scope">{{ ops_scope_label }}</p>
+
+    {% if ops_alerts %}
+    <div class="ops-alerts" role="region" aria-label="{% translate 'Operational alerts' %}">
+      {% for a in ops_alerts %}
+      <div class="ops-alert ops-alert--{{ a.level }}" data-alert-level="{{ a.level }}">
+        <div class="ops-alert__title">
+          {{ a.title }}
+          <span class="ops-alert__count">({{ a.count }})</span>
+        </div>
+        <ul class="ops-alert__rows">
+          {% for r in a.rows %}
+          <li><a href="{{ r.url }}">{{ r.label }}</a>{% if r.meta %}<span class="ops-alert__meta"> — {{ r.meta }}</span>{% endif %}</li>
+          {% endfor %}
+        </ul>
+        {% if a.more_url %}
+        <p class="ops-alert__more"><a href="{{ a.more_url }}">{% translate "Open in admin list" %} →</a></p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <h2 class="ops-section-title">{% translate "Headline metrics" %}</h2>
+    <div class="ops-kpi-grid">
+      {% for card in ops_kpis %}
+      <article class="ops-kpi-card" data-kpi="{{ card.key }}">
+        <div class="ops-kpi-card__icon" aria-hidden="true">
+          {% if card.key == "leads" %}👤{% elif card.key == "events" %}📅{% elif card.key == "revenue" %}💰{% else %}⏳{% endif %}
+        </div>
+        <p class="ops-kpi-card__label">{{ card.label }}</p>
+        <p class="ops-kpi-card__value">{{ card.value }}</p>
+        <p class="ops-kpi-card__hint">{{ card.hint }}</p>
+      </article>
+      {% endfor %}
+    </div>
+
+    <div class="ops-panels ops-panels--wide">
+      <section class="ops-panel">
+        <h2 class="ops-panel__head">{% translate "Revenue intelligence" %}</h2>
+        <div class="ops-panel__pad">
+          <p class="ops-metric-line"><strong>{% translate "Today" %}:</strong> {{ ops_revenue.today }}</p>
+          <p class="ops-metric-line"><strong>{% translate "Month-to-date" %}:</strong> {{ ops_revenue.month }}</p>
+          <p class="ops-quiet">{{ ops_revenue.basis }}</p>
+          <h3 class="ops-subhead">{% translate "Aging — past event date, balance still due" %}</h3>
+          <table class="ops-table">
+            {% for row in ops_revenue.aging %}
+            <tr><td>{{ row.label }}</td><td class="ops-num">{{ row.value }}</td></tr>
+            {% endfor %}
+          </table>
+          <p class="ops-quiet">{{ ops_revenue.aging_note }}</p>
+        </div>
+      </section>
+
+      <section class="ops-panel">
+        <h2 class="ops-panel__head">{% translate "Pipeline" %} · {% blocktranslate with d=ops_funnel.window_days %}last {{ d }} days cohort{% endblocktranslate %}</h2>
+        <div class="ops-panel__pad">
+          <ul class="ops-metric-list">
+            <li>{% translate "New leads (cohort)" %}: <strong>{{ ops_funnel.leads }}</strong></li>
+            <li>{% translate "With quotation" %}: <strong>{{ ops_funnel.with_quotation }}</strong>
+              ({{ ops_funnel.pct_lead_to_quote }}% {% translate "of leads" %})</li>
+            <li>{% translate "With event" %}: <strong>{{ ops_funnel.with_event }}</strong></li>
+            <li>{% translate "Converted after quote" %}: <strong>{{ ops_funnel.events_from_quoted_leads }}</strong>
+              ({{ ops_funnel.pct_quote_to_event }}% {% translate "of quoted" %})</li>
+            <li>{% translate "Fully paid events (from leads)" %}: <strong>{{ ops_funnel.fully_paid }}</strong>
+              ({{ ops_funnel.pct_event_to_paid }}% {% translate "of leads with event" %})</li>
+          </ul>
+          <p class="ops-quiet">{{ ops_funnel.note }}</p>
+          <h3 class="ops-subhead">{% translate "Today's pipeline signals" %}</h3>
+          <ul class="ops-metric-list">
+            <li>{% translate "Leads created today" %}: <strong>{{ ops_pipeline.leads_today }}</strong></li>
+            <li>{% translate "Planning leads · no touch 48h+" %}: <strong>{{ ops_pipeline.stale_leads_48h }}</strong></li>
+            <li>{% translate "Quotations awaiting reply (sent)" %}: <strong>{{ ops_pipeline.quotations_pending }}</strong></li>
+            <li>{% translate "Lost inquiries (status changed in last 30d)" %}: <strong>{{ ops_pipeline.lost_last_30d }}</strong></li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    <section class="ops-load">
+      <h2 class="ops-section-title">{% translate "Operational load" %} <span class="ops-quiet">{{ ops_load.week_note }}</span></h2>
+      <div class="ops-load__chips">
+        <span class="ops-chip">{% translate "Events today" %}: {{ ops_load.today }}</span>
+        <span class="ops-chip">{% translate "Tomorrow" %}: {{ ops_load.tomorrow }}</span>
+        <span class="ops-chip">{% translate "Next 7 days" %}: {{ ops_load.week }}</span>
+      </div>
+      {% if ops_load.busy %}
+      <div class="ops-busy-wrap">
+        <span class="ops-busy-label">{% translate "Busy dates" %}:</span>
+        {% for b in ops_load.busy %}
+        <span class="ops-chip ops-chip--warn">{{ b.date }} ×{{ b.count }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+
+    <h2 class="ops-section-title">{% translate "Actions" %}</h2>
+    <div class="ops-actions ops-actions--grouped">
+      {% if ops_quick_actions %}
+      <div class="ops-actions__row">
+        {% for x in ops_quick_actions %}
+        <a class="ops-button ops-button--create" href="{{ x.url }}"><span aria-hidden="true">＋</span> {{ x.label }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if ops_fix_actions %}
+      <div class="ops-actions__row">
+        <span class="ops-actions__label">{% translate "Fix & triage" %}</span>
+        {% for x in ops_fix_actions %}
+        <a class="ops-button ops-button--fix" href="{{ x.url }}">{{ x.label }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="ops-panels">
+      <section class="ops-panel">
+        <h2 class="ops-panel__head">{% translate "Recent quotations" %}</h2>
+        {% if ops_recent_quotations %}
+        <ul class="ops-panel__list">
+          {% for row in ops_recent_quotations %}
+          <li class="ops-panel__item">
+            <p class="ops-panel__title"><a href="{{ row.change_url }}">{{ row.label }}</a></p>
+            <p class="ops-panel__meta">{{ row.status }} · {{ row.total }} · {{ row.updated }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="ops-empty">{% translate "No quotations in this scope." %}</p>
+        {% endif %}
+      </section>
+
+      <section class="ops-panel">
+        <h2 class="ops-panel__head">{% translate "Upcoming events" %}</h2>
+        {% if ops_upcoming_events %}
+        <ul class="ops-panel__list">
+          {% for row in ops_upcoming_events %}
+          <li class="ops-panel__item">
+            <p class="ops-panel__title"><a href="{{ row.change_url }}">{{ row.code }} — {{ row.customer }}</a></p>
+            <p class="ops-panel__meta">{{ row.when }}{% if row.venue %} · {{ row.venue }}{% endif %}</p>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="ops-empty">{% translate "No upcoming events in this scope." %}</p>
+        {% endif %}
+      </section>
+    </div>
+  </section>
+
+  {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+</div>
+{% endblock %}
+
+{% block sidebar %}
+<div id="content-related">
+    <div class="module" id="recent-actions-module">
+        <h2>{% translate 'Recent actions' %}</h2>
+        <h3>{% translate 'My actions' %}</h3>
+            {% load log %}
+            {% get_admin_log 10 as admin_log for_user user %}
+            {% if not admin_log %}
+            <p>{% translate 'None available' %}</p>
+            {% else %}
+            <ul class="actionlist">
+            {% for entry in admin_log %}
+            <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %}">
+                <span class="visually-hidden">{% if entry.is_addition %}{% translate 'Added:' %}{% elif entry.is_change %}{% translate 'Changed:' %}{% elif entry.is_deletion %}{% translate 'Deleted:' %}{% endif %}</span>
+                {% if entry.is_deletion or not entry.get_admin_url %}
+                    {{ entry.object_repr }}
+                {% else %}
+                    <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                {% endif %}
+                <br>
+                {% if entry.content_type %}
+                    <span class="mini quiet">{% filter capfirst %}{{ entry.content_type.name }}{% endfilter %}</span>
+                {% else %}
+                    <span class="mini quiet">{% translate 'Unknown content' %}</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+            </ul>
+            {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{# Variables: data.left { date_header, categories:[{name, items:[{name,qty}]}] }, data.right same shape #}
+<div style="width:794px;min-height:1123px;margin:0 auto;box-sizing:border-box;background:#fff;color:#1a4a2e;font-family:Georgia,'Times New Roman',serif;padding:36px 28px 56px;position:relative;display:flex;gap:0;">
+  <div style="flex:1;padding-right:18px;box-sizing:border-box;">
+    <p style="margin:0 0 16px;font-size:11px;font-weight:700;color:#c8a84b;letter-spacing:0.06em;font-family:system-ui,sans-serif;border-bottom:2px solid #c8a84b;padding-bottom:8px;">{% if data.left %}{{ data.left.date_header }}{% else %}{{ data.date_header|default:'Date — Event' }}{% endif %}</p>
+    {% if data.left.categories %}
+      {% for cat in data.left.categories %}
+      <div style="margin-bottom:18px;">
+        <h3 style="margin:0 0 8px;font-size:13px;font-weight:700;color:#1a4a2e;text-decoration:underline;text-underline-offset:3px;">{{ cat.name }}</h3>
+        <ul style="margin:0;padding:0;list-style:none;font-size:11px;line-height:1.7;color:#2d3748;">
+          {% for it in cat.items %}
+          <li style="margin-bottom:4px;display:flex;justify-content:space-between;gap:8px;">
+            <span>{{ it.name }}</span>{% if it.qty %}<span style="color:#c8a84b;font-weight:600;">{{ it.qty }}</span>{% endif %}
+          </li>
+          {% empty %}
+          <li style="color:#94a3b8;">—</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="font-size:11px;color:#94a3b8;">No menu (left).</p>
+    {% endif %}
+  </div>
+  <div style="width:2px;flex-shrink:0;background:linear-gradient(180deg,transparent,#c8a84b 15%,#c8a84b 85%,transparent);opacity:0.9;"></div>
+  <div style="flex:1;padding-left:18px;box-sizing:border-box;">
+    <p style="margin:0 0 16px;font-size:11px;font-weight:700;color:#c8a84b;letter-spacing:0.06em;font-family:system-ui,sans-serif;border-bottom:2px solid #c8a84b;padding-bottom:8px;">{% if data.right %}{{ data.right.date_header }}{% else %}{{ data.date_header_right|default:'Date — Event' }}{% endif %}</p>
+    {% if data.right.categories %}
+      {% for cat in data.right.categories %}
+      <div style="margin-bottom:18px;">
+        <h3 style="margin:0 0 8px;font-size:13px;font-weight:700;color:#1a4a2e;text-decoration:underline;text-underline-offset:3px;">{{ cat.name }}</h3>
+        <ul style="margin:0;padding:0;list-style:none;font-size:11px;line-height:1.7;color:#2d3748;">
+          {% for it in cat.items %}
+          <li style="margin-bottom:4px;display:flex;justify-content:space-between;gap:8px;">
+            <span>{{ it.name }}</span>{% if it.qty %}<span style="color:#c8a84b;font-weight:600;">{{ it.qty }}</span>{% endif %}
+          </li>
+          {% empty %}
+          <li style="color:#94a3b8;">—</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="font-size:11px;color:#94a3b8;">No menu (right).</p>
+    {% endif %}
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;height:10px;background:#c8a84b;"></div>
+</div>

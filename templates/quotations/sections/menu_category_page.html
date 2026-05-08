@@ -1,0 +1,26 @@
+{# Variables: data.category_name, data.items — each { name, qty, compliment (bool) } #}
+<div style="width:794px;min-height:1123px;margin:0 auto;box-sizing:border-box;background:#fff;color:#1a4a2e;font-family:Georgia,'Times New Roman',serif;padding:44px 48px 56px;position:relative;">
+  <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-18deg);font-size:64px;font-weight:700;color:#1a4a2e;opacity:0.2;pointer-events:none;white-space:nowrap;font-family:Georgia,serif;z-index:0;">
+    MomsLove
+  </div>
+  <div style="position:relative;z-index:1;">
+    <h2 style="margin:0 0 28px;font-size:22px;font-weight:700;color:#1a4a2e;text-decoration:underline;text-underline-offset:6px;text-decoration-color:#c8a84b;text-decoration-thickness:2px;">{{ data.category_name|default:'Category' }}</h2>
+    <ul style="margin:0;padding:0;list-style:none;font-size:12px;line-height:1.85;">
+      {% if data.items %}
+        {% for it in data.items %}
+        <li style="margin-bottom:8px;padding-left:0;display:flex;align-items:flex-start;gap:10px;">
+          <span style="color:#c8a84b;font-size:11px;line-height:1.85;">&#9830;</span>
+          <span style="flex:1;color:#2d3748;">
+            {{ it.name }}
+            {% if it.qty %}<span style="color:#c8a84b;font-weight:700;margin-left:6px;">{{ it.qty }}</span>{% endif %}
+            {% if it.compliment %}<span style="color:#eab308;font-weight:600;margin-left:8px;">(COMPLIMENT)</span>{% endif %}
+          </span>
+        </li>
+        {% endfor %}
+      {% else %}
+        <li style="margin-bottom:8px;display:flex;gap:10px;"><span style="color:#c8a84b;">&#9830;</span><span>Sample item <span style="color:#c8a84b;font-weight:700;">1 × portion</span></span></li>
+      {% endif %}
+    </ul>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;height:10px;background:#c8a84b;"></div>
+</div>

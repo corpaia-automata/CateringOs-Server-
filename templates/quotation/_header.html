@@ -1,0 +1,15 @@
+<header class="quote-header">
+  {% if logo_url %}
+    <div class="quote-header__logo">
+      <img src="{{ logo_url }}" alt="" />
+    </div>
+  {% endif %}
+  <div class="quote-header__brand">
+    <h1 class="quote-header__name">{{ business_name }}</h1>
+    <div class="quote-header__contact">
+      {% if brand_phone %}<span class="quote-header__meta">{{ brand_phone }}</span>{% endif %}
+      {% if brand_phone and brand_email %}<span class="quote-header__sep">·</span>{% endif %}
+      {% if brand_email %}<span class="quote-header__meta">{{ brand_email }}</span>{% endif %}
+    </div>
+  </div>
+</header>

@@ -1,0 +1,23 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block submit_buttons_bottom %}
+{{ block.super }}
+{% if change and not is_popup and is_activate_builder_url %}
+<div class="submit-row quote-admin-activate-row">
+  {% if original.is_active %}
+    <span class="quote-admin-badge quote-admin-badge--active quote-admin-active-since">
+      {% if original.activated_at %}
+        {{ original.get_template_type_display }} — {% translate "active since" %} {{ original.activated_at|date:"N j, Y, P" }}
+      {% else %}
+        {{ original.get_template_type_display }} — {% translate "active" %}
+      {% endif %}
+    </span>
+  {% else %}
+    <a href="{{ is_activate_builder_url }}" class="button default">
+      {% translate "Set active for this template type" %}
+    </a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
