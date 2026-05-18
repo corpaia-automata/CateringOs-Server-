@@ -169,7 +169,7 @@ class Quotation(BaseMixin):
     costing_data = models.JSONField(default=dict)
     grocery_data = models.JSONField(default=dict)
     pricing_data = models.JSONField(default=dict)
-    pdf_file = models.CharField(max_length=500, blank=True)
+    pdf_file = models.CharField(max_length=500, blank=True, default='')
     pdf_url = models.URLField(max_length=500, null=True, blank=True)
     template_snapshot = models.JSONField(null=True, blank=True)
     template = models.ForeignKey(

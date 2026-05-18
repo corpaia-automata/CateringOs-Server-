@@ -1,6 +1,8 @@
 import copy
+import logging
 import re
 
+from django.db import IntegrityError, ProgrammingError
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -8,11 +10,14 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from shared import cache
+from shared.tenant_rls import with_tenant_rls
 
 from apps.quotations.template_defaults import ensure_tenant_default_quotation_template_fk
 
 from .models import Tenant
 from .serializers import OnboardSerializer
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -115,23 +120,45 @@ class OnboardView(APIView):
             status='active',
             default_template=default_template,
         )
-        ensure_tenant_default_quotation_template_fk(tenant)
 
-        # Create admin user (lazy import avoids circular deps)
-        from apps.authentication.models import User
-        user = User.objects.create_user(
-            email=data['email'],
-            password=data['password'],
-            tenant=tenant,
-            role=User.Role.ADMIN,
-            first_name='',
-            last_name='',
-        )
-        refresh = RefreshToken.for_user(user)
-        refresh['tenant_id'] = str(user.tenant_id)
-        refresh['tenant_slug'] = tenant.slug
-        refresh['role'] = user.role
-        refresh['email'] = user.email
+        try:
+            with with_tenant_rls(tenant.id):
+                ensure_tenant_default_quotation_template_fk(tenant)
+
+                # Create admin user (lazy import avoids circular deps)
+                from apps.authentication.models import User
+
+                user = User.objects.create_user(
+                    email=data['email'],
+                    password=data['password'],
+                    tenant=tenant,
+                    role=User.Role.ADMIN,
+                    first_name='',
+                    last_name='',
+                )
+                refresh = RefreshToken.for_user(user)
+                refresh['tenant_id'] = str(user.tenant_id)
+                refresh['tenant_slug'] = tenant.slug
+                refresh['role'] = user.role
+                refresh['email'] = user.email
+        except IntegrityError:
+            logger.exception('Onboard failed for slug=%s email=%s', slug, data['email'])
+            tenant.delete()
+            return Response(
+                {'email': ['An account with this email already exists.']},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except ProgrammingError:
+            logger.exception('Onboard database schema error slug=%s', slug)
+            tenant.delete()
+            return Response(
+                {
+                    'detail': [
+                        'Server database is out of date. Run migrations on the API server, then try again.',
+                    ]
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
         return Response(
             {
