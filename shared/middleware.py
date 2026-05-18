@@ -84,112 +84,112 @@ class TenantResolverMiddleware:
         return self.get_response(request)
 
 
-class TrialEnforcementMiddleware:
-    EXEMPT_PATHS = (
-        '/api/auth/login/',
-        '/api/auth/logout/',
-        '/api/auth/signup/',
-        '/api/auth/refresh/',
-        '/api/health/',
-        '/admin/',
-    )
+# class TrialEnforcementMiddleware:
+#     EXEMPT_PATHS = (
+#         '/api/auth/login/',
+#         '/api/auth/logout/',
+#         '/api/auth/signup/',
+#         '/api/auth/refresh/',
+#         '/api/health/',
+#         '/admin/',
+#     )
 
-    def __init__(self, get_response):
-        self.get_response = get_response
+#     def __init__(self, get_response):
+#         self.get_response = get_response
 
-    def __call__(self, request):
-        if request.path.startswith(self.EXEMPT_PATHS):
-            return self.get_response(request)
+#     def __call__(self, request):
+#         if request.path.startswith(self.EXEMPT_PATHS):
+#             return self.get_response(request)
 
-        user = getattr(request, 'user', None)
-        if not getattr(user, 'is_authenticated', False):
-            self._activate_tenant_from_token(request)
-            user = self._authenticate_jwt(request)
+#         user = getattr(request, 'user', None)
+#         if not getattr(user, 'is_authenticated', False):
+#             self._activate_tenant_from_token(request)
+#             user = self._authenticate_jwt(request)
 
-        if not getattr(user, 'is_authenticated', False):
-            return self.get_response(request)
+#         if not getattr(user, 'is_authenticated', False):
+#             return self.get_response(request)
 
-        if getattr(user, 'is_superuser', False):
-            return self.get_response(request)
+#         if getattr(user, 'is_superuser', False):
+#             return self.get_response(request)
 
-        try:
-            tenant = user.tenant
-        except AttributeError:
-            tenant = None
+#         try:
+#             tenant = user.tenant
+#         except AttributeError:
+#             tenant = None
 
-        if tenant is None:
-            return self.get_response(request)
+#         if tenant is None:
+#             return self.get_response(request)
 
-        from apps.tenants.models import SubscriptionStatus
+#         from apps.tenants.models import SubscriptionStatus
 
-        if tenant.subscription_status == SubscriptionStatus.TRIAL and tenant.is_trial_expired:
-            tenant.subscription_status = SubscriptionStatus.EXPIRED
-            tenant.save(update_fields=['subscription_status'])
-            return self._blocked_response(tenant, 'trial_expired')
+#         if tenant.subscription_status == SubscriptionStatus.TRIAL and tenant.is_trial_expired:
+#             tenant.subscription_status = SubscriptionStatus.EXPIRED
+#             tenant.save(update_fields=['subscription_status'])
+#             return self._blocked_response(tenant, 'trial_expired')
 
-        if tenant.subscription_status in [SubscriptionStatus.EXPIRED, SubscriptionStatus.CANCELLED]:
-            return self._blocked_response(
-                tenant,
-                f'subscription_{tenant.subscription_status.lower()}',
-            )
+#         if tenant.subscription_status in [SubscriptionStatus.EXPIRED, SubscriptionStatus.CANCELLED]:
+#             return self._blocked_response(
+#                 tenant,
+#                 f'subscription_{tenant.subscription_status.lower()}',
+#             )
 
-        request.trial_info = self._subscription_payload(tenant)
-        return self.get_response(request)
+#         request.trial_info = self._subscription_payload(tenant)
+#         return self.get_response(request)
 
-    def _authenticate_jwt(self, request):
-        try:
-            from rest_framework_simplejwt.authentication import JWTAuthentication
+#     def _authenticate_jwt(self, request):
+#         try:
+#             from rest_framework_simplejwt.authentication import JWTAuthentication
 
-            authenticated = JWTAuthentication().authenticate(request)
-        except Exception:
-            return getattr(request, 'user', None)
+#             authenticated = JWTAuthentication().authenticate(request)
+#         except Exception:
+#             return getattr(request, 'user', None)
 
-        if authenticated is None:
-            return getattr(request, 'user', None)
+#         if authenticated is None:
+#             return getattr(request, 'user', None)
 
-        user, _token = authenticated
-        request.user = user
-        return user
+#         user, _token = authenticated
+#         request.user = user
+#         return user
 
-    def _activate_tenant_from_token(self, request):
-        if getattr(request, 'tenant_id', None):
-            return
+#     def _activate_tenant_from_token(self, request):
+#         if getattr(request, 'tenant_id', None):
+#             return
 
-        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-        if not auth_header.startswith('Bearer '):
-            return
+#         auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+#         if not auth_header.startswith('Bearer '):
+#             return
 
-        try:
-            from rest_framework_simplejwt.tokens import AccessToken
+#         try:
+#             from rest_framework_simplejwt.tokens import AccessToken
 
-            token = AccessToken(auth_header[7:].strip())
-            tenant_id = token.get('tenant_id')
-        except Exception:
-            return
+#             token = AccessToken(auth_header[7:].strip())
+#             tenant_id = token.get('tenant_id')
+#         except Exception:
+#             return
 
-        if not tenant_id:
-            return
+#         if not tenant_id:
+#             return
 
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SET LOCAL app.current_tenant_id = %s",
-                [tenant_id],
-            )
+#         with connection.cursor() as cursor:
+#             cursor.execute(
+#                 "SET LOCAL app.current_tenant_id = %s",
+#                 [tenant_id],
+#             )
 
-    def _subscription_payload(self, tenant):
-        return {
-            'subscription_status': tenant.subscription_status,
-            'trial_days_left': tenant.trial_days_left,
-            'trial_ends_at': tenant.trial_ends_at.isoformat() if tenant.trial_ends_at else None,
-            'has_active_access': tenant.has_active_access,
-        }
+#     def _subscription_payload(self, tenant):
+#         return {
+#             'subscription_status': tenant.subscription_status,
+#             'trial_days_left': tenant.trial_days_left,
+#             'trial_ends_at': tenant.trial_ends_at.isoformat() if tenant.trial_ends_at else None,
+#             'has_active_access': tenant.has_active_access,
+#         }
 
-    def _blocked_response(self, tenant, reason):
-        return JsonResponse(
-            {
-                'error': 'trial_ended',
-                'message': 'Your trial has ended. We will be in touch soon.',
-                'trial_ended': True,
-            },
-            status=403,
-        )
+#     def _blocked_response(self, tenant, reason):
+#         return JsonResponse(
+#             {
+#                 'error': 'trial_ended',
+#                 'message': 'Your trial has ended. We will be in touch soon.',
+#                 'trial_ended': True,
+#             },
+#             status=403,
+#         )

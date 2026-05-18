@@ -54,7 +54,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # Resolves /api/app/<slug>/... → sets request.tenant* + activates RLS
     'shared.middleware.TenantResolverMiddleware',
-    'shared.middleware.TrialEnforcementMiddleware',
+    # 'shared.middleware.TrialEnforcementMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
