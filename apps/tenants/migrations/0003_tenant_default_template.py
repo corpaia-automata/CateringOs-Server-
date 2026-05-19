@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('quotations', '0009_quotationtemplate_alter_quotation_managers_and_more'),
+        ('quotations', '0001_initial'),
         ('tenants', '0002_tenant_subscription_status_tenant_trial_started_at'),
     ]
 

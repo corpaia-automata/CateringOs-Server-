@@ -334,7 +334,7 @@ class Migration(migrations.Migration):
         ('authentication', '0001_initial'),
         ('events',         '0002_event_add_fields'),
         ('inquiries',      '0005_inquiry_email'),
-        ('quotations',     '0001_initial'),
+        # quotations.0001_initial squashed later; tenant SQL already applied on existing DBs
         ('master',         '0004_add_meat_subcategories'),
         ('menu',           '0002_eventmenuitem_quantity_unit'),
         ('engine',         '0002_alter_eventingredient_total_quantity'),

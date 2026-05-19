@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('events', '0003_add_tenant_system'),
         ('inquiries', '0007_update_statuses'),
-        ('quotations', '0003_quotation_quote_number'),
+        ('quotations', '0001_initial'),
     ]
 
     operations = [

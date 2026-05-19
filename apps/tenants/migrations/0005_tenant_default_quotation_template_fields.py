@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('quotations', '0027_quotation_pdf_url'),
+        ('quotations', '0001_initial'),
         ('tenants', '0004_remove_tenant_default_template'),
     ]
 
